@@ -1,0 +1,68 @@
+# platform_config.yaml template — 平台级配置。
+# init_platform.py 将其复制到 video_publiser_data/{platform}/platform_config.yaml，
+# 并回填 platform.data_dir 等路径。agent 在"首次发布流程"的
+# "发布物料数据结构整理"步骤中，根据对发布页 DOM 的探测结果，直接编辑本文件，
+# 完善 material_structure.fields（字段、候选值）与 default_config（自动模式默认模板）。
+platform:
+  name: bilibili # agent fills: 平台英文标识，如 bilibili / douyin / wechat_channels / youtube
+  aliases: [B站, 哔哩哔哩, bilibili] # agent fills: 用户可能使用的平台别名，用于触发时平台检测
+  data_dir: "" # filled by init_platform.py — 平台目录绝对路径
+  publish_page_url: "" # agent fills: 投稿发布页 URL（首次流程通过 probe_page.py 探测确认）
+  # 登录检测：登录后页面 URL 应包含的字符串 / 应出现的元素选择器（任一命中即视为已登录）
+  login_indicator:
+    url_contains: ""
+    selector: ""
+  cdp:
+    host: 127.0.0.1
+    port: 9222 # 有头浏览器调试端口（--remote-debugging-port）
+    browser_path: "" # 为空则使用 playwright chromium；可指向系统 Chrome/Edge 可执行文件
+# 物料数据结构：发布页表单字段的梳理结果，供 agent 和发布脚本共同调用。
+# 首次流程中通过 probe_page.py 获取发布页 DOM 结构后，由 agent 完善每一个字段
+# （含候选值 candidates）。publish_scripts/{platform}_publish.py 按此结构读取物料数据。
+material_structure:
+  fields:
+    title:
+      label: 标题
+      kind: text # text | textarea | tags | select | image(封面) | video(视频文件) | checkbox | extra
+      required: true
+      max_length: 80
+      hint: 通过 probe_page.py 探测发布页后填写
+    description:
+      label: 简介
+      kind: textarea
+      required: false
+      max_length: 1000
+      hint: ""
+    tags:
+      label: 标签
+      kind: tags
+      required: true
+      max_count: 3
+      candidates: []
+    partition:
+      label: 分区
+      kind: select
+      required: true
+      candidates: [] # 发布页分区选项，探测后填写，如 [科技, 游戏, 生活]
+    cover:
+      label: 封面
+      kind: image
+      required: true
+      hint: 由 generate_material.py 通过 comfyui-scheduler 文生图生成
+    video:
+      label: 视频文件
+      kind: video
+      required: true
+      hint: 待发布的本地视频文件
+# 自动模式的默认配置模板（手动模式下作为表单初值供用户审核）。
+# 首次流程整理完 material_structure 后由 agent 生成；发布时优先取项目配置
+# project_config.yaml 中 publish_defaults 的值，其次取这里的默认值。
+default_config:
+  title_format: "{video_name}" # 支持 {video_name} {date} {project} 占位符
+  description_format: ""
+  tags: []
+  partition: ""
+  auto_cover: true # true = comfyui-scheduler 生成封面；false = 跳过封面
+  publish_script_hint: ""
+# 发布脚本位置（首次流程编写完成后由 agent 回填）
+publish_script: "" # filled after first publish flow: publish_scripts/{platform}_publish.py 绝对路径

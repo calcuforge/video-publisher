@@ -1,0 +1,34 @@
+# project_config.yaml template — 项目级配置。
+# init_project.py 将其复制到 video_publiser_data/{platform}/projects/{name}/project_config.yaml，
+# 并回填 project.project_root_path。agent 随后直接编辑本文件，填写
+# project.name / publish_defaults / material / cover 等请求相关字段。
+# 项目的概念 = 要发布视频的关键属性（如视频分类），如 tech / game / food / tutorial。
+project:
+  name: my-project # agent fills: 分类化项目名（如 tech），不是具体视频标题
+  project_root_path: "" # filled by init_project.py — 项目目录绝对路径
+  creation_mode: auto # auto — 使用平台 default_config 模板自动完成；manual — 关键步骤暂停等待用户审核
+  description: "" # agent fills: 项目描述，如"科技类视频"
+  platforms: [] # agent fills: 该项目发往的平台标识列表，如 [bilibili, douyin]
+# 发布默认值：优先级高于平台级 default_config，是自动模式的实际取值来源
+publish_defaults:
+  title_format: "{video_name}" # 标题模板，支持 {video_name} {date} {project}
+  description_format: "" # 简介模板
+  tags: []
+  partition: "" # 默认投稿分区（需在平台 material_structure 的候选值内）
+  auto_cover: true
+# 物料生成配置
+material:
+  video_source_dir: "" # agent fills: 待发布视频所在目录（相对项目目录或绝对路径）
+cover:
+  # 封面文生图配置（comfyui-scheduler）
+  # 首次流程中根据平台封面规格（如 B 站 3:2 1600x1000）填写
+  comfyui_workflow: "" # 如 flux_t2i，需为 comfyui-scheduler 可用 workflow
+  prompt: "" # 封面提示词模板，支持 {title} {topic} 占位符
+  width: 1920
+  height: 1080
+  seed: 0 # 0 = 随机
+  negative_prompt: ""
+# 依赖路径
+dependence_paths:
+  comfyui_scheduler: "" # comfyui-scheduler 仓库路径（可选，仅用于提示安装位置）
+  comfyui_url: "http://127.0.0.1:8188" # ComfyUI 服务地址（comfyui-scheduler 使用）
