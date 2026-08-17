@@ -9,6 +9,8 @@
 ### 1. 目录与配置初始化
 
 ```bash
+# SKILL_DIR = 包含 SKILL.md 的目录（agent 已加载该文件，取其绝对路径）
+SKILL_DIR="${SKILL_DIR:-${CLAUDE_SKILL_DIR}}"
 python "${SKILL_DIR}/scripts/tool/init_workspace.py" --workspace <工作区>
 python "${SKILL_DIR}/scripts/tool/init_platform.py" --workspace <工作区> --platform <平台标识>
 ```

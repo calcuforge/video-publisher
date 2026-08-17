@@ -59,10 +59,18 @@ metadata:
 | ComfyUI 服务 | 文生图后端 | 本地运行，默认 http://127.0.0.1:8188 |
 | 有头浏览器 + VNC | 人机协作（登录/验证码） | 标准环境为 [hermes-hitl-environment](https://github.com/calcuforge/hermes-hitl-environment)（VNC:5900 / noVNC:6080 / CDP:9222），或 `launch_browser.py` 启动共享 Chromium；见 references/human-collab.md |
 
+**脚本路径约定**：本 skill 所有脚本以 `${SKILL_DIR}/scripts/...` 引用，
+`SKILL_DIR` = **包含本 SKILL.md 的目录**（agent 已加载本文件，取其绝对路径；
+已设置 `CLAUDE_SKILL_DIR` 环境变量时直接使用）：
+
+```bash
+SKILL_DIR="${SKILL_DIR:-${CLAUDE_SKILL_DIR}}"
+```
+
 前置检查（每次发布的第一步，必须执行）：
 
 ```bash
-SKILL_DIR=技能目录  # 包含本 SKILL.md 的目录
+SKILL_DIR="${SKILL_DIR:-${CLAUDE_SKILL_DIR}}"
 python "${SKILL_DIR}/scripts/tool/check_prereqs.py" [--workspace <工作区>]
 ```
 

@@ -36,7 +36,8 @@
 ## 步骤 2 — 运行环境检查
 
 ```bash
-SKILL_DIR=技能目录  # 包含本 SKILL.md 的目录
+# SKILL_DIR = 包含 SKILL.md 的目录（agent 已加载该文件，取其绝对路径）
+SKILL_DIR="${SKILL_DIR:-${CLAUDE_SKILL_DIR}}"
 python "${SKILL_DIR}/scripts/tool/check_prereqs.py" [--workspace <工作区>]
 ```
 

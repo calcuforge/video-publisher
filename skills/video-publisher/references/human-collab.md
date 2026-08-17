@@ -42,6 +42,8 @@
 launch-chromium.sh：单一持久 profile、CDP 调试端口、下载目录、崩溃锁清理）：
 
 ```bash
+# SKILL_DIR = 包含 SKILL.md 的目录（agent 已加载该文件，取其绝对路径）
+SKILL_DIR="${SKILL_DIR:-${CLAUDE_SKILL_DIR}}"
 python "${SKILL_DIR}/scripts/tool/launch_browser.py" \
     [--cdp-port 9222] [--profile-dir <持久profile>] [--downloads-dir <下载目录>]
 # 输出 JSON envelope，含 CDP URL 与 VNC/noVNC 接入方式；浏览器前台长驻（后台运行）
