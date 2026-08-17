@@ -1,0 +1,21 @@
+# materials.yaml 示例：单次发布的物料数据。
+# 由 generate_material.py 自动生成（ffprobe 元数据 + 平台/项目配置组装），
+# agent 按需编辑文本字段；manual 模式下必须经用户审核后才能发布。
+material:
+  video_file: "D:/videos/tech/GPU架构详解.mp4"
+  video_metadata:
+    duration_sec: 482.0
+    width: 1920
+    height: 1080
+    size_bytes: 321456789
+  created_at: "2026-08-13 20:15:00"
+  # fields 的键与 platform_config.yaml 的 material_structure.fields 一一对应
+  fields:
+    title: "GPU架构详解 | 科技前沿"
+    description: "本期视频：GPU架构详解。欢迎点赞收藏，关注解锁更多科技内容。"
+    tags: [科技, 硬核科普]
+    partition: 科技
+    cover: "{workspace}/video_publiser_data/bilibili/projects/tech/materials/20260813_gpu_architecture/cover.png"
+    video: "D:/videos/tech/GPU架构详解.mp4"
+    original_declaration: true
+  mode: auto # auto | manual；manual 模式发布前 agent 必须等待用户审核
