@@ -1,0 +1,19 @@
+{"status": "info", "msg": "已读取 explainer-video-maker 的 video_config: video_config.yaml", "data": {"topic": "人工智能如何深刻影响我们的世界", "has_summary": true}}
+{"status": "warning", "msg": "auto_cover 已启用但 cover.comfyui_workflow 未配置，跳过封面生成。agent 应参考 references/platform-integration.md 补充配置或手动准备封面。", "data": {}}
+{
+  "status": "ok",
+  "msg": "物料数据生成完成",
+  "data": {
+    "material_dir": "C:\\Users\\anson\\dev\\video-publisher\\video_publiser_data\\bilibili\\projects\\tech\\materials\\20260817_v",
+    "materials_yaml": "C:\\Users\\anson\\dev\\video-publisher\\video_publiser_data\\bilibili\\projects\\tech\\materials\\20260817_v\\materials.yaml",
+    "cover_file": "",
+    "video_metadata": {
+      "duration_sec": 1.0,
+      "width": 320,
+      "height": 180,
+      "size_bytes": 7012
+    },
+    "mode": "auto",
+    "note": "manual 模式下 agent 必须先让用户审核 materials.yaml 再继续"
+  }
+}

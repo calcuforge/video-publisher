@@ -28,7 +28,11 @@
 
 ## 步骤 3 — 项目检测
 
-- 按视频内容推断分类，查找 `{platform}/projects/{name}/project_config.yaml`。
+- **先识别视频来源**：若视频文件同目录存在 `video_config.yaml`
+  （explainer-video-maker 产物），按
+  [explainer-video-maker-integration.md](explainer-video-maker-integration.md)
+  用其 `topic` 归类并复用/创建项目；记下 `video_config.yaml` 路径供步骤 4 使用。
+- 否则按视频内容推断分类，查找 `{platform}/projects/{name}/project_config.yaml`。
 - 不存在 → `init_project.py` 初始化新项目（沿用已有项目的 `cover`/`publish_defaults`
   作为参考，向用户确认或按默认值生成）。
 - 存在 → 读取 `project.creation_mode` 决定模式，读取 `publish_defaults` 作为取值来源。
@@ -36,7 +40,7 @@
 
 ## 步骤 4 — 物料数据生成
 
-同首次流程步骤 5（generate_material.py + 手动模式审核点）。
+同首次流程步骤 5（generate_material.py + `--video-config` 联动 + 手动模式审核点）。
 
 ## 步骤 5 — 执行发布脚本
 

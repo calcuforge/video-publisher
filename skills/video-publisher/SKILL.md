@@ -123,6 +123,11 @@ Manual 模式确认点：
 
 ## 发布流程
 
+**explainer-video-maker 联动**：若待发布视频同目录存在 `video_config.yaml`
+（explainer-video-maker 的产物），按其 `topic`/`summary` 归类和生成物料
+（项目归类依据、标题、简介、封面提示词），`generate_material.py` 传
+`--video-config`；详见 references/explainer-video-maker-integration.md。
+
 ### 首次发布流程（平台无配置或无发布脚本时）
 
 **核心思想：不做独立探测步骤——agent 直接走完整个发布流程，首次发布成功
@@ -230,6 +235,7 @@ references/workflow-publish.md。
 
 - [workflow-first-publish.md](references/workflow-first-publish.md) — 首次发布流程（含首次发布执行详解）
 - [publish-framework.md](references/publish-framework.md) — 发布脚本框架扩展指南（hooks + 平台类型模式）
+- [explainer-video-maker-integration.md](references/explainer-video-maker-integration.md) — 联动 explainer-video-maker（识别/归类/物料生成）
 - [workflow-publish.md](references/workflow-publish.md) — 非首次发布流程
 - [human-collab.md](references/human-collab.md) — VNC + CDP 人机协作协议
 - [self-healing.md](references/self-healing.md) — 自愈机制

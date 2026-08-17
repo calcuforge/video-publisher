@@ -68,13 +68,20 @@ python "${SKILL_DIR}/scripts/verify/verify_platform_config.py" --platform-config
 
 ## 步骤 4 — 项目检测与目录、配置初始化
 
+**先识别视频来源**：若视频文件同目录存在 `video_config.yaml`
+（explainer-video-maker 产物），按
+[explainer-video-maker-integration.md](explainer-video-maker-integration.md)
+用其 `topic` 与项目名归类（推断分类 → 同名项目复用/创建），并记下
+`video_config.yaml` 路径供步骤 5 使用。
+
 ```bash
 python "${SKILL_DIR}/scripts/tool/init_project.py" \
     --platform-dir {platform_dir} --project-dir-name <分类名>
 python "${SKILL_DIR}/scripts/verify/verify_project_config.py" --project-config <...>/project_config.yaml
 ```
 
-- 项目名 = 视频分类（如 tech / game / food），同名自动加数字后缀。
+- 项目名 = 视频分类（如 tech / game / food），同名自动加数字后缀；
+  来自 explainer-video-maker 的视频按其中信息归类。
 - 编辑 `project_config.yaml`：`creation_mode`（默认 auto）、
   `publish_defaults`（标题/简介模板、默认标签、分区、auto_cover）、
   `material.video_source_dir`、`cover`（comfyui workflow、提示词、尺寸——
@@ -88,9 +95,14 @@ python "${SKILL_DIR}/scripts/verify/verify_project_config.py" --project-config <
 python "${SKILL_DIR}/scripts/tool/generate_material.py" \
     --project-config <...>/project_config.yaml \
     --platform-config <...>/platform_config.yaml \
-    --video-file <待发布视频>
+    --video-file <待发布视频> \
+    [--video-config <...>/video_config.yaml]   # 来自 explainer-video-maker 时必传
 ```
 
+- **explainer-video-maker 联动**（步骤 4 识别到 `video_config.yaml` 时）：
+  传 `--video-config`，标题直接用 `topic`（或模板引用 `{topic}`）、简介用
+  `summary`、封面提示词可引用 `{topic}`/`{summary}`，详见
+  [explainer-video-maker-integration.md](explainer-video-maker-integration.md)。
 - ffprobe 探测视频元数据；按 `cover` 配置通过 **comfyui-scheduler 文生图**
   生成封面（提示词支持 `{title}` 占位符，按标题模板解析后注入）；组装
   `materials.yaml`（标题/简介/标签/分区/封面/视频路径）。

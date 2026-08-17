@@ -6,12 +6,23 @@
 1. ffprobe 探测视频文件（时长、分辨率、大小）写入物料元数据
 2. 若启用 auto_cover 且配置了 comfyui_workflow，通过 comfyui-scheduler
    文生图生成封面（提示词来自 project_config.yaml cover.prompt，支持
-   {title} {video_name} {date} {project} 占位符——{title} 按
-   「项目 publish_defaults > 平台 default_config」解析标题模板后注入）
+   {title} {topic} {summary} {video_name} {date} {project} 占位符——
+   {title} 按「项目 publish_defaults > 平台 default_config」解析标题模板
+   后注入；{topic} {summary} 在提供 --video-config 时可用）
 3. 依据平台 material_structure.fields + 项目 publish_defaults + 平台
    default_config，组装 materials.yaml（agent 随后按需编辑文本字段；
    手动模式下必须先经用户审核）
 4. 自动模式直接使用组装结果；manual 模式下 agent 必须暂停等待用户审核
+
+explainer-video-maker 联动（--video-config）:
+- 识别：视频文件同目录存在 video_config.yaml（产物结构
+  projects/{项目}/{视频}/video_config.yaml + result.mp4）
+- 标题：未配置 title_format 时直接用 video_config.topic；
+  配置了模板则可引用 {topic}
+- 简介：未配置 description_format 时用 summary（按平台 max_length 截断）
+- 封面：cover.prompt 可引用 {topic} {summary} 生成更贴合的封面
+- 项目归类：由 agent 依据 topic 与 explainer 项目名推断分类
+  （见 references/explainer-video-maker-integration.md）
 
 物料目录: {project_dir}/materials/{YYYYMMDD}_{video_name}/
 
@@ -19,6 +30,7 @@
     python generate_material.py --project-config /abs/.../project_config.yaml \
                                 --platform-config /abs/.../platform_config.yaml \
                                 --video-file /abs/path/video.mp4 \
+                                [--video-config /abs/.../video_config.yaml] \
                                 [--output-dir /abs/...] [--no-cover]
 
 输出（JSON envelope）: data.material_dir / data.materials_yaml / data.cover_file
@@ -106,7 +118,13 @@ def render_template(template: str, **ctx) -> str:
 
 
 def resolve_title(project_config: dict, platform_config: dict, ctx: dict) -> str:
-    """按「项目 publish_defaults > 平台 default_config」解析标题模板并渲染。
+    """解析发布标题，优先级：
+
+    1. 显式配置了 title_format（项目 publish_defaults > 平台 default_config，
+       且不是模板默认值 "{video_name}"）→ 渲染模板（可引用 {topic} 等）；
+    2. 有 video_config 的 topic（explainer-video-maker 联动）→ 直接用
+       topic 作为标题（模板默认值 "{video_name}" 不覆盖 topic）；
+    3. 兜底 → {video_name}。
 
     封面提示词的 {title} 与物料的 title 字段共用此值，保证两者一致。
     """
@@ -115,7 +133,11 @@ def resolve_title(project_config: dict, platform_config: dict, ctx: dict) -> str
         if src.get("title_format") not in (None, ""):
             fmt = src["title_format"]
             break
-    return render_template(str(fmt or "{video_name}"), **ctx)
+    if fmt and not (str(fmt) == "{video_name}" and ctx.get("topic")):
+        return render_template(str(fmt), **ctx)
+    if ctx.get("topic"):
+        return str(ctx["topic"])
+    return render_template("{video_name}", **ctx)
 
 
 def build_material(
@@ -140,7 +162,17 @@ def build_material(
 
     # 封面生成阶段已解析并注入 ctx["title"]（见 main），此处复用保证一致
     title = ctx.get("title") or resolve_title(project_config, platform_config, ctx)
-    description = render_template(str(pick(["description_format"], "")), **ctx)
+    fmt = pick(["description_format"], "")
+    if fmt:
+        description = render_template(str(fmt), **ctx)
+    elif ctx.get("summary"):
+        # explainer-video-maker 联动：无简介模板时用视频摘要，按平台字段长度截断
+        description = str(ctx["summary"])
+        maxlen = fields.get("description", {}).get("max_length")
+        if maxlen and len(description) > int(maxlen):
+            description = description[:int(maxlen)]
+    else:
+        description = ""
 
     material: dict = {
         "material": {
@@ -182,6 +214,9 @@ def main() -> None:
     parser.add_argument("--video-file", required=True, help="待发布视频文件绝对路径")
     parser.add_argument("--output-dir", default="", help="物料输出目录（默认 {project}/materials/{date}_{video_name}）")
     parser.add_argument("--no-cover", action="store_true", help="跳过封面生成")
+    parser.add_argument("--video-config", default="",
+                        help="explainer-video-maker 的 video_config.yaml 路径（可选）："
+                             "其 topic/summary 用于生成标题/简介/封面提示词（{topic} {summary} 占位符）")
     args = parser.parse_args()
 
     require_abs(args.project_config, args.platform_config, args.video_file)
@@ -205,6 +240,24 @@ def main() -> None:
         "date": date_str,
         "project": project_config.get("project", {}).get("name", ""),
     }
+    # explainer-video-maker 联动：视频文件同目录的 video_config.yaml 提供
+    # topic/summary，用于归类依据与标题/简介/封面提示词生成
+    if args.video_config:
+        require_abs(args.video_config)
+        vc_path = Path(args.video_config)
+        if vc_path.exists():
+            vc = load_yaml(args.video_config)
+            if isinstance(vc, dict):
+                ctx["topic"] = vc.get("topic", "")
+                ctx["summary"] = vc.get("summary", "")
+                print(json.dumps({"status": "info",
+                                  "msg": f"已读取 explainer-video-maker 的 video_config: {vc_path.name}",
+                                  "data": {"topic": ctx["topic"][:60],
+                                           "has_summary": bool(ctx.get("summary"))}},
+                                 ensure_ascii=False), flush=True)
+        else:
+            print(json.dumps({"status": "warning", "msg": f"--video-config 文件不存在，忽略: {vc_path}",
+                              "data": {}}, ensure_ascii=False), flush=True)
     # 封面提示词与物料的 {title} 必须真实替换（按标题模板解析），
     # 否则文生图会把字面量 "{title}" 画进封面
     ctx["title"] = resolve_title(project_config, platform_config, ctx)
