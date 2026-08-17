@@ -6,7 +6,8 @@
 1. ffprobe 探测视频文件（时长、分辨率、大小）写入物料元数据
 2. 若启用 auto_cover 且配置了 comfyui_workflow，通过 comfyui-scheduler
    文生图生成封面（提示词来自 project_config.yaml cover.prompt，支持
-   {title} {topic} 占位符）
+   {title} {video_name} {date} {project} 占位符——{title} 按
+   「项目 publish_defaults > 平台 default_config」解析标题模板后注入）
 3. 依据平台 material_structure.fields + 项目 publish_defaults + 平台
    default_config，组装 materials.yaml（agent 随后按需编辑文本字段；
    手动模式下必须先经用户审核）
@@ -104,6 +105,19 @@ def render_template(template: str, **ctx) -> str:
     return re.sub(r"\{(\w+)\}", repl, template)
 
 
+def resolve_title(project_config: dict, platform_config: dict, ctx: dict) -> str:
+    """按「项目 publish_defaults > 平台 default_config」解析标题模板并渲染。
+
+    封面提示词的 {title} 与物料的 title 字段共用此值，保证两者一致。
+    """
+    fmt = ""
+    for src in (project_config.get("publish_defaults", {}), platform_config.get("default_config", {})):
+        if src.get("title_format") not in (None, ""):
+            fmt = src["title_format"]
+            break
+    return render_template(str(fmt or "{video_name}"), **ctx)
+
+
 def build_material(
     project_config: dict,
     platform_config: dict,
@@ -124,7 +138,8 @@ def build_material(
                     return src[k]
         return fallback
 
-    title = render_template(str(pick(["title_format"], "{video_name}")), **ctx)
+    # 封面生成阶段已解析并注入 ctx["title"]（见 main），此处复用保证一致
+    title = ctx.get("title") or resolve_title(project_config, platform_config, ctx)
     description = render_template(str(pick(["description_format"], "")), **ctx)
 
     material: dict = {
@@ -190,6 +205,9 @@ def main() -> None:
         "date": date_str,
         "project": project_config.get("project", {}).get("name", ""),
     }
+    # 封面提示词与物料的 {title} 必须真实替换（按标题模板解析），
+    # 否则文生图会把字面量 "{title}" 画进封面
+    ctx["title"] = resolve_title(project_config, platform_config, ctx)
 
     metadata = ffprobe_metadata(video_file)
 

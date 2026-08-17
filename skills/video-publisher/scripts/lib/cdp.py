@@ -81,6 +81,24 @@ def check_cdp_port(host: str, port: int, timeout: float = 2.0) -> bool:
         return False
 
 
+_PW_SINGLETON = None
+
+
+def _get_playwright():
+    """进程级 playwright 单例。
+
+    用 sync_playwright().start() 显式启动并常驻：若在 `with sync_playwright()`
+    块内返回 browser，块退出时 driver 停止，调用方任何后续 CDP 操作都会报
+    "Event loop is closed"。单例模式保证 browser 在进程存活期间始终可用，
+    CLI 进程退出时自然释放。
+    """
+    global _PW_SINGLETON
+    if _PW_SINGLETON is None:
+        from playwright.sync_api import sync_playwright
+        _PW_SINGLETON = sync_playwright().start()
+    return _PW_SINGLETON
+
+
 def connect_browser(cdp_url: str = ""):
     """Connect to a headed browser via its CDP endpoint.
 
@@ -93,22 +111,17 @@ def connect_browser(cdp_url: str = ""):
     cdp_url = resolve_cdp_url(cdp_url)
     if Page is None:
         raise RuntimeError("playwright not installed. Run: pip install -r requirements.txt")
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        raise RuntimeError("playwright not installed. Run: pip install -r requirements.txt")
 
-    with sync_playwright() as pw:
-        try:
-            browser = pw.chromium.connect_over_cdp(cdp_url)
-        except Exception as exc:  # pragma: no cover - environment dependent
-            from lib.env import vnc_hint
-            raise RuntimeError(
-                f"无法通过 CDP 连接到有头浏览器 {cdp_url}: {exc}\n"
-                f"请先启动有头浏览器并开启调试端口（可运行 launch_browser.py 或使用 "
-                f"hermes-hitl-environment）。接入方式：{vnc_hint(cdp_url=cdp_url)}"
-            )
-        return browser
+    pw = _get_playwright()
+    try:
+        return pw.chromium.connect_over_cdp(cdp_url)
+    except Exception as exc:  # pragma: no cover - environment dependent
+        from lib.env import vnc_hint
+        raise RuntimeError(
+            f"无法通过 CDP 连接到有头浏览器 {cdp_url}: {exc}\n"
+            f"请先启动有头浏览器并开启调试端口（可运行 launch_browser.py 或使用 "
+            f"hermes-hitl-environment）。接入方式：{vnc_hint(cdp_url=cdp_url)}"
+        )
 
 
 def new_page(browser, url: str = "", platform_config: Optional[dict] = None) -> Page:

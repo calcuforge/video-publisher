@@ -22,8 +22,8 @@ material:
 cover:
   # 封面文生图配置（comfyui-scheduler）
   # 首次流程中根据平台封面规格（如 B 站 3:2 1600x1000）填写
-  comfyui_workflow: "" # 如 flux_t2i，需为 comfyui-scheduler 可用 workflow
-  prompt: "" # 封面提示词模板，支持 {title} {topic} 占位符
+  comfyui_workflow: "" # 如 z_image_fp16，需为 comfyui-scheduler 已导入的实际 workflow（按本机工作流库调整）
+  prompt: "" # 封面提示词模板，支持 {title} {video_name} {date} {project} 占位符（{title} 按标题模板解析后注入）
   width: 1920
   height: 1080
   seed: 0 # 0 = 随机

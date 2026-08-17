@@ -19,7 +19,9 @@ material:
   video_source_dir: "D:/videos/tech" # 待发布视频所在目录（示例）
 cover:
   # 封面文生图（comfyui-scheduler），B站封面规格 3:2 1600x1000
-  comfyui_workflow: flux_t2i
+  # 注意：workflow 名须为本机 comfyui-scheduler 已导入的实际工作流
+  # （示例本机为 z_image_fp16；其他机器以 comfyui-scheduler 查询结果为准）
+  comfyui_workflow: z_image_fp16
   prompt: "科技感封面图，主题：{title}，深蓝背景配电路纹理，金属质感标题区，专业高清"
   width: 1600
   height: 1000
