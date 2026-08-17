@@ -16,6 +16,7 @@
 | 连接 CDP 失败 | 有头浏览器未启动/端口错误 | 按 human-collab.md 启动浏览器，重试 |
 | 找不到控件/选择器 | 页面改版或探测不完整 | 重新 probe → 更新选择器/物料结构 |
 | 登录后未跳转 | 登录失败或验证码 | VNC 人工处理，重试等待 |
+| storageState 失效/过期 | token 过期、平台强制下线 | 属正常流程：ensure_login 自动降级为 VNC 登录并重新保存 storageState，无需修脚本 |
 | 上传控件找不到 | 上传入口是按钮非 file input | 改用 human_wait_selector 等人工点击 |
 | 表单填了没生效 | 字段定位到隐藏/错误元素 | 重新 probe，改用 label/placeholder 定位 |
 | 提交后无反应 | 提交按钮选择器错/风控 | 重新 probe + 人工介入 |

@@ -32,9 +32,39 @@ chromium --remote-debugging-port=9222 --user-data-dir={workspace}/video_publiser
 x11vnc -forever -display :0 &   # 之后 DISPLAY=:0 启动 chromium
 ```
 
-- **必须使用固定的 `--user-data-dir`**，否则登录态（cookie）无法复用，
-  每次都要重新登录。
+- 建议使用固定的 `--user-data-dir`（浏览器 profile 的 cookie 作为兜底会话），
+  但**登录态的持久化以 playwright storageState 为主**（见下节）。
 - 检查端口：`curl http://127.0.0.1:9222/json/version` 返回 JSON 即就绪。
+
+## 登录态管理（storageState 优先，VNC 兜底）
+
+**agent 编写/维护 playwright 自动化脚本时，登录态必须用 storageState 保存
+与复用**，规则如下（已在 `lib/cdp.ensure_login()` 中实现，发布脚本模板默认
+调用）：
+
+```
+每次发布：
+1. 读取平台 storageState（默认 {platform.data_dir}/storage_state.json，
+   可用 platform_config.yaml 的 platform.login.storage_state_path 覆盖）
+2. 存在 → 载入登录态打开发布页 → 校验 login_indicator（URL 特征/元素特征）
+   ├─ 命中 → 已登录，直接继续发布
+   └─ 未命中 → 登录态已过期/失效 → 步骤 3
+   不存在 → 首次发布，无登录态 → 步骤 3
+3. VNC 人机协作登录：脚本输出 @ENV@ 提示（"storageState 缺失或已过期，
+   请通过 VNC 在有头浏览器中完成登录"）并阻塞等待，用户登录完成后
+   自动保存新的 storageState，后续发布无需再登录
+```
+
+要点：
+- **storageState 保存位置在平台级**（`{platform_dir}/storage_state.json`），
+  该平台所有项目/所有视频共用一份登录态。
+- 判断"已登录"的依据是 `platform_config.yaml` 的 `login_indicator`
+  （`url_contains` 登录后 URL 特征 / `selector` 已登录元素特征），首次流程
+  中用 probe_page.py 探测后填写，缺失时 `ensure_login()` 会报错提醒补齐。
+- 登录态过期是常态（平台强制下线、token 失效），脚本必须能自动降级到
+  VNC 登录，**不要假设"上次登录过就永远有效"**。
+- 首次流程的 probe_page.py 探测页面时，若浏览器会话已登录（profile cookie），
+  探测结果即为登录后的发布页结构；登录态随后由发布脚本保存为 storageState。
 
 ## agent 的职责：转达提示，不代替脚本
 

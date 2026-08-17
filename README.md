@@ -51,6 +51,7 @@ video-publisher/
     │   │   └── template_publish.py # Agent-filled template for per-platform scripts
     │   └── verify/                 # Config validation scripts
     ├── templates/                  # platform/project/default config templates
+    │   └── example_configs/        # Filled-in config examples (video_publiser_data-bilibili-tech)
     └── references/                 # Agent workflow & protocol docs (Chinese)
 ```
 

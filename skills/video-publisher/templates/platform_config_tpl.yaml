@@ -12,6 +12,11 @@ platform:
   login_indicator:
     url_contains: ""
     selector: ""
+  # 登录态管理（playwright storageState）：发布脚本优先复用已保存的登录态，
+  # 缺失或过期时通过 VNC 人机协作登录，成功后自动保存。留空默认
+  # {data_dir}/storage_state.json（平台级共享，该平台所有项目通用）。
+  login:
+    storage_state_path: ""
   cdp:
     host: 127.0.0.1
     port: 9222 # 有头浏览器调试端口（--remote-debugging-port）

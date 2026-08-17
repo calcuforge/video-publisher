@@ -75,11 +75,16 @@ python "${SKILL_DIR}/scripts/tool/probe_page.py" \
 
 - 脚本通过 CDP 调用**有头浏览器**打开发布页，输出页面所有可见控件
   （输入框/文本域/下拉/按钮/上传控件）及其属性到 markdown。
-- **人机协作**：若页面需要登录，先指定 `--wait-url-contains`（如
-  `passport.bilibili.com`），脚本阻塞等待，agent 必须提示用户：
+- **人机协作**：若打开发布页后被重定向到登录页，先指定
+  `--wait-url-contains` 为**登录后发布页的 URL 特征**（如
+  `member.bilibili.com/platform/upload`），脚本阻塞等待，agent 必须提示用户：
   > ⚠ 需要通过 VNC 在有头浏览器中登录 <平台>，脚本正在等待...
 
-  用户登录完成后页面跳转，探测自动继续。
+  用户登录完成后跳回发布页，探测自动继续。
+- 探测完成后，把登录指示（`login_indicator.url_contains` = 登录后 URL 特征、
+  `login_indicator.selector` = 已登录元素特征）写入 platform_config.yaml；
+  发布脚本随后会用 storageState 保存登录态，后续发布不再需要人工登录
+  （见 human-collab.md「登录态管理」）。
 - 探测结果包含 iframe 内控件（很多平台的发布页是 iframe），分析时注意主 frame。
 
 ### 4b. 整理物料数据结构 → 写入平台配置

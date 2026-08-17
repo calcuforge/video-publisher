@@ -91,6 +91,9 @@ python "${SKILL_DIR}/scripts/tool/check_prereqs.py" [--workspace <工作区>]
   yaml 配置，可任意扩展）。
 - workspace 解析顺序：`--workspace` 参数 > 环境变量 `VIDEO_PUBLISHER_WORKSPACE`
   > 当前工作目录。
+- 配置文件的完整填写示例见 `templates/example_configs/`（含 B站平台配置、
+  tech 项目配置、一次发布的物料数据），agent 编写配置时可参考其格式。
+
 
 ## 执行模式
 
@@ -159,6 +162,12 @@ references/workflow-publish.md。
 ## 人机协作要点
 
 - 发布过程通过 **CDP 调用有头浏览器**，用户可经 **VNC** 观察与介入。
+- **登录态管理（storageState 优先）**：编写 playwright 自动化脚本时，登录态
+  必须用 storageState 保存（平台级 `storage_state.json`，路径可由
+  `platform_config.yaml` 的 `platform.login.storage_state_path` 覆盖）。
+  每次发布优先复用登录态；**缺失或过期**（打开页面后未命中
+  `login_indicator`）时启用 VNC 人机协作登录，成功后自动保存登录态。
+  实现位于 `lib/cdp.ensure_login()`，发布脚本模板默认调用。
 - 脚本遇到登录/验证码/风控等会输出 `@ENV@ {"env_status": "human_collab", ...}`
   并**阻塞等待**。agent 必须原样转达用户：
   > ⚠ 需要用户通过 VNC 配合：<操作说明>，脚本正在等待（每 30s 心跳）。

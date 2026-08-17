@@ -27,8 +27,10 @@ platform:
   aliases: [小红书, xiaohongshu]
   publish_page_url: https://creator.xiaohongshu.com/publish/publish
   login_indicator:
-    url_contains: ""      # 登录页 URL 特征（用于判断需要人工登录）
-    selector: ""          # 已登录特征选择器
+    url_contains: ""      # 登录后 URL 特征（任一命中即视为已登录）
+    selector: ""          # 已登录元素特征选择器
+  login:
+    storage_state_path: ""  # 留空默认 {data_dir}/storage_state.json（storageState 登录态）
   cdp: {host: 127.0.0.1, port: 9222, browser_path: ""}
 material_structure:
   fields: {...}           # 探测发布页后填写（字段/候选值，见下）

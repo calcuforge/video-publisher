@@ -40,9 +40,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 from lib.cdp import (
-    connect_browser, click_by_selector, click_by_text, env_out, fill_by_label,
-    fill_by_placeholder, fill_text, human_wait_selector, human_wait_url, new_page,
-    screenshot, select_by_text, upload_file,
+    connect_browser, click_by_selector, click_by_text, ensure_login, env_out,
+    fill_by_label, fill_by_placeholder, fill_text, human_wait_selector,
+    human_wait_url, new_page, screenshot, select_by_text, upload_file,
 )
 from lib.net import ensure_utf8_stdio
 from lib.yamlutil import load_yaml
@@ -51,11 +51,11 @@ ensure_utf8_stdio()
 
 # ============ agent 在此填写平台参数 ============
 # 依据 probe_page.py 探测结果：
-# - 发布页 URL 与登录指示（通常与 platform_config.yaml 一致，此处为兜底默认）
+# - 发布页 URL（登录指示 login_indicator 配置在 platform_config.yaml，
+#   登录态由 storageState 管理：优先复用已保存登录态，缺失/过期时
+#   ensure_login() 会阻塞等待用户通过 VNC 登录并自动重新保存）
 # - 关键控件的选择器（CSS）或标签文本
 PUBLISH_URL = ""  # 例: https://member.bilibili.com/platform/upload/video/frame
-LOGIN_URL_CONTAINS = ""  # 例: passport.bilibili.com — 出现即需要人工登录
-LOGIN_OK_URL_CONTAINS = ""  # 例: /platform/upload/video/frame — 出现即视为已登录
 FORM_READY_SELECTOR = ""  # 发布表单出现的选择器，例: "input[placeholder*='标题']"
 TITLE_SELECTOR = ""  # 例: "input[placeholder*='标题']"；留空则用 fill_by_label('标题')
 DESCRIPTION_SELECTOR = ""
@@ -74,23 +74,14 @@ def read_material(material_path: Path) -> dict:
 
 
 def wait_login(page, platform_config: dict) -> None:
-    """检测登录状态；未登录则阻塞等待用户通过 VNC 完成登录。"""
-    indicator = platform_config.get("platform", {}).get("login_indicator", {})
-    url_ok = indicator.get("url_contains") or LOGIN_OK_URL_CONTAINS
-    selector_ok = indicator.get("selector") or ""
-    logged_in = False
-    if url_ok and url_ok in (page.url or ""):
-        logged_in = True
-    if selector_ok and page.locator(selector_ok).count() > 0:
-        logged_in = True
-    if logged_in:
-        env_out("login", "已检测到登录状态")
-        return
-    human_wait_url(
-        page,
-        "页面未登录。请通过 VNC 观察有头浏览器，手动完成登录（扫码/账号密码/验证码）",
-        url_ok,
-    )
+    """登录态管理：storageState 优先，缺失/过期则 VNC 人机协作登录并保存。
+
+    逻辑在 lib/cdp.ensure_login() 中实现，平台脚本只需调用：
+    1. 已登录 → 直接继续；
+    2. storageState 缺失或过期 → 阻塞等待用户通过 VNC 登录（@ENV@ 提示）；
+    3. 登录成功后自动保存 storageState（默认 {data_dir}/storage_state.json）。
+    """
+    ensure_login(page, platform_config)
 
 
 def step_upload_video(page, material: dict) -> None:
@@ -179,7 +170,10 @@ def main() -> None:
 
     try:
         browser = connect_browser(args.cdp_url)
-        page = new_page(browser, PUBLISH_URL or platform_config.get("platform", {}).get("publish_page_url", ""))
+        # 传入 platform_config：存在 storageState 时自动载入登录态（新 context），
+        # 缺失时复用浏览器现有会话，登录后由 ensure_login 保存登录态
+        page = new_page(browser, PUBLISH_URL or platform_config.get("platform", {}).get("publish_page_url", ""),
+                        platform_config=platform_config)
         env_out("step", f"已打开发布页: {page.url}")
 
         wait_login(page, platform_config)

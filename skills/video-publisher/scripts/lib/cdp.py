@@ -23,6 +23,7 @@ import json
 import socket
 import sys
 import time
+from pathlib import Path
 from typing import Callable, Optional
 
 try:
@@ -86,14 +87,111 @@ def connect_browser(cdp_url: str):
         return browser
 
 
-def new_page(browser, url: str = "") -> Page:
-    """Open a fresh tab. Prefers an incognito-less new context in the SAME
-    browser so the user's logged-in cookies are reused."""
-    context = browser.contexts[0] if browser.contexts else browser.new_context()
+def new_page(browser, url: str = "", platform_config: Optional[dict] = None) -> Page:
+    """Open a fresh tab.
+
+    Login-state policy (storageState 优先):
+    - 若 platform_config 提供且该平台的 storageState 文件存在 → 新建 context
+      并载入登录态（不再依赖浏览器 profile 的 cookie）；
+    - 否则复用浏览器已有 context（用户通过 VNC 登录的那个可见窗口）。
+    """
+    state = load_login_state(storage_state_path(platform_config)) if platform_config else None
+    if state is not None:
+        context = browser.new_context(storage_state=state)
+    else:
+        context = browser.contexts[0] if browser.contexts else browser.new_context()
     page = context.new_page()
     if url:
         page.goto(url, wait_until="domcontentloaded")
     return page
+
+
+def storage_state_path(platform_config: Optional[dict]) -> str:
+    """平台登录态文件路径。默认 {platform.data_dir}/storage_state.json，
+    可用 platform_config 的 platform.login.storage_state_path 覆盖。"""
+    if not platform_config:
+        return ""
+    login = platform_config.get("platform", {}).get("login", {})
+    configured = login.get("storage_state_path", "")
+    if configured:
+        return configured
+    data_dir = platform_config.get("platform", {}).get("data_dir", "")
+    return str(Path(data_dir) / "storage_state.json") if data_dir else ""
+
+
+def load_login_state(path: str) -> Optional[dict]:
+    """读取 storageState 文件；不存在或损坏返回 None（视为需要重新登录）。"""
+    if not path or not Path(path).exists():
+        return None
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        env_out("login_state", f"storageState 文件损坏，将重新登录: {path}")
+        return None
+
+
+def check_logged_in(page: Page, platform_config: dict) -> bool:
+    """按 platform_config.platform.login_indicator 判断是否已登录。
+
+    url_contains（登录后 URL 特征）与 selector（已登录元素特征）任一命中即
+    视为已登录。未配置任何指示时返回 False（脚本应报错提示补齐配置）。
+    """
+    indicator = platform_config.get("platform", {}).get("login_indicator", {})
+    url_ok = indicator.get("url_contains", "")
+    selector_ok = indicator.get("selector", "")
+    if url_ok and url_ok in (page.url or ""):
+        return True
+    if selector_ok:
+        try:
+            if page.locator(selector_ok).count() > 0:
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def save_login_state(page: Page, path: str) -> None:
+    """把当前页面的登录态保存为 storageState 文件。"""
+    if not path:
+        return
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(page.context.storage_state(), fh, ensure_ascii=False, indent=2)
+    env_out("login_state", f"登录态已保存，后续发布无需重复登录: {path}", path=path)
+
+
+def ensure_login(page: Page, platform_config: dict, timeout: int = 600) -> None:
+    """登录态管理（storageState 优先，VNC 人机协作兜底）：
+
+    1. 已登录（storageState 或浏览器会话生效）→ 直接继续；
+    2. storageState 缺失或已过期（打开页面后未命中登录指示）→ 输出 VNC 提示，
+       阻塞等待用户在有头浏览器中完成登录；
+    3. 登录成功后自动保存 storageState，供后续发布复用。
+    """
+    path = storage_state_path(platform_config)
+    if check_logged_in(page, platform_config):
+        env_out("login", "已检测到登录状态（storageState 或浏览器会话）")
+        return
+
+    state = load_login_state(path)
+    if state is not None:
+        env_out("login_state", "storageState 已过期或失效，转入 VNC 人机协作登录")
+
+    indicator = platform_config.get("platform", {}).get("login_indicator", {})
+    url_ok = indicator.get("url_contains", "")
+    selector_ok = indicator.get("selector", "")
+    desc = ("检测到未登录（storageState 缺失或已过期）。"
+            "请通过 VNC 在有头浏览器中完成登录（扫码/账号/验证码），"
+            "脚本将自动保存登录态")
+    if url_ok:
+        human_wait_url(page, desc, url_ok, timeout=timeout)
+    elif selector_ok:
+        human_wait_selector(page, desc, selector_ok, timeout=timeout)
+    else:
+        raise RuntimeError("platform_config.yaml 未配置 login_indicator（login_indicator.url_contains / "
+                           "login_indicator.selector 至少其一），无法判断登录状态。"
+                           "请先在首次发布流程中通过 probe_page.py 探测登录特征")
+    save_login_state(page, path)
 
 
 def human_wait(
