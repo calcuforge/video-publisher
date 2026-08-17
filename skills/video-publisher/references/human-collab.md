@@ -105,6 +105,22 @@ Windows 本地调试也可手动启动（推荐固定 `--user-data-dir`，profil
 点击滑块），并告知脚本正在阻塞等待。脚本每 30 秒输出一次
 `human_collab_waiting` 心跳，完成时输出 `human_collab_done`。
 
+**agent channel 推送通知**：脚本输出人机协作提示时会**自动**通过配置的
+agent channel 推送通知（登录态/验证码等场景均经 `human_hint()` 触发）。
+若 channel 未配置或推送失败，agent 仍须在对话中提示用户；agent 也可用
+CLI 手动补推：
+
+```bash
+python "${SKILL_DIR}/scripts/tool/notify.py" --message "需要用户通过 VNC 完成登录"
+```
+
+channel 配置（可选，不配置则不推送）：
+- 配置文件 `{workspace}/video_publiser_data/agent_channel.yaml`（示例见
+  templates/example_configs/agent_channel.yaml），支持 `command`（命令模板，
+  如 `claude notify`）与 `webhook`（HTTP POST JSON）两种类型；
+- 或环境变量 `AGENT_CHANNEL`（http(s) 开头 = webhook URL，否则 = 命令模板）；
+- 推送失败仅警告，不影响发布流程。
+
 **agent 禁止**：
 - 替用户处理验证码（自动打码/绕过）——所有验证一律走人工；
 - 在未收到 `human_collab_done` 或成功 envelope 前宣布发布成功；

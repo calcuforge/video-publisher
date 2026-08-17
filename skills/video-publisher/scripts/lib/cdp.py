@@ -32,6 +32,12 @@ except ImportError:  # pragma: no cover - fail later with a clear message
     Page = None  # type: ignore
     PlaywrightTimeoutError = Exception
 
+# @ENV@ 输出含中文/emoji（⚠ 等），必须在导入时强制 UTF-8，
+# 否则 GBK 控制台（Windows）直接 UnicodeEncodeError 崩溃
+from lib.net import ensure_utf8_stdio  # noqa: E402
+
+ensure_utf8_stdio()
+
 
 def env_out(status: str, msg: str, **data) -> None:
     """Print a machine-readable JSON envelope line (prefixed @ENV@)."""
@@ -46,16 +52,24 @@ def human_hint(desc: str, condition: str = "", cdp_url: str = "") -> None:
     """Print the standard human-collab hint. Agents must relay this to the user.
 
     The hint includes the human-collab entrances (VNC / noVNC / CDP) aligned
-    with hermes-hitl-environment conventions (see lib/env.py).
+    with hermes-hitl-environment conventions (see lib/env.py). 若配置了 agent
+    channel（video_publiser_data/agent_channel.yaml 或环境变量 AGENT_CHANNEL），
+    同时通过 channel 推送通知提醒用户（lib/notify.py）。
     """
     from lib.env import vnc_hint
     cond = f"（脚本将阻塞等待，直到检测到：{condition}）" if condition else ""
+    full = f"⚠ 需要用户通过 VNC 配合：{desc}{cond}。接入方式：{vnc_hint(cdp_url=cdp_url)}"
     env_out(
         "human_collab",
-        f"⚠ 需要用户通过 VNC 配合：{desc}{cond}。接入方式：{vnc_hint(cdp_url=cdp_url)}",
+        full,
         action="vnc",
         condition=condition,
     )
+    try:
+        from lib.notify import notify_human_collab
+        notify_human_collab(full)
+    except Exception:
+        pass  # 推送失败不影响主流程
 
 
 def check_cdp_port(host: str, port: int, timeout: float = 2.0) -> bool:

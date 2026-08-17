@@ -179,6 +179,11 @@ references/workflow-publish.md。
   > ⚠ 需要用户通过 VNC 配合：<操作说明>，脚本正在等待（每 30s 心跳）。
 
   直到出现 `human_collab_done` 或失败才继续/重试。
+- **agent channel 推送**：脚本输出人机协作提示时自动通过配置的 channel 推送
+  通知（登录态/验证码场景）；若配置了 `agent_channel`（`{workspace}/video_
+  publiser_data/agent_channel.yaml` 或环境变量 `AGENT_CHANNEL`，支持
+  command/webhook 两种类型）则推送，失败仅警告不影响流程。agent 也可用
+  `scripts/tool/notify.py --message "..."` 手动补推。详见 human-collab.md。
 - 具体协议、浏览器启动方式、等待条件写法见 references/human-collab.md。
 
 ## 自愈机制

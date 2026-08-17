@@ -8,6 +8,7 @@
 
 ```text
 example_configs/
+├── agent_channel.yaml               # 工作区级人机协作通知推送配置（可选）
 └── video_publiser_data-bilibili-tech/
     ├── platform_config.yaml          # 平台级配置（B站，含物料数据结构与默认模板）
     └── projects/tech/

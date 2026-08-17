@@ -44,6 +44,7 @@ video-publisher/
     │   │   ├── yamlutil.py         # YAML load/save
     │   │   ├── net.py              # Path/network helpers
     │   │   ├── env.py              # hermes-aligned env conventions (ports/CDP URL)
+    │   │   ├── notify.py           # agent channel notification push (command/webhook)
     │   │   └── cdp.py              # CDP + Playwright headed-browser helpers with
     │   │                           #   human-in-the-loop blocking waits (VNC hints)
     │   ├── tool/                   # Pipeline scripts
@@ -54,7 +55,8 @@ video-publisher/
     │   │   ├── init_project.py     # Project dir + project_config.yaml
     │   │   ├── probe_page.py       # Publish-page DOM probe via CDP (human-collab)
     │   │   ├── generate_material.py# ffprobe metadata + comfyui-scheduler cover + materials.yaml
-    │   │   └── publish_video.py    # Publish entry (runs the platform publish script)
+    │   │   ├── publish_video.py    # Publish entry (runs the platform publish script)
+    │   │   └── notify.py           # Push human-collab notifications via agent channel
     │   ├── publish_scripts/
     │   │   └── template_publish.py # Agent-filled template for per-platform scripts
     │   └── verify/                 # Config validation scripts
