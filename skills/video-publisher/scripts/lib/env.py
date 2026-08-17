@@ -3,7 +3,11 @@
 对齐。该环境提供标准的人机协作桌面：人类通过 VNC(5900)/noVNC(6080) 观察操作，
 agent 通过 CDP(9222) 驱动同一个共享 Chromium。
 
-约定的环境变量（与 hermes 的 .env.example 一致）：
+重要：本模块只读取进程环境变量（os.environ），**不读取任何 .env 文件**。
+hermes 的 .env/.env.example 只是 docker compose 部署时的配置源（env_file），
+部署时变量被注入容器进程环境；容器内部与本地运行环境中都没有 .env 文件。
+
+约定的环境变量（变量名与 hermes 的 .env.example 一致）：
 
   PLAYWRIGHT_CDP_URL=http://127.0.0.1:9222   Playwright 通过 CDP 驱动共享 Chromium
   CHROME_REMOTE_DEBUGGING_PORT=9222          共享 Chromium 调试端口
