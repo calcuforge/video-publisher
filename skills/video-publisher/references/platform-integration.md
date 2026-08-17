@@ -19,9 +19,10 @@ python "${SKILL_DIR}/scripts/tool/init_platform.py" --workspace <工作区> --pl
   `init_platform.py` 的 `PLATFORM_ALIASES` —— 新平台接入后把常用别名加进去，
   并在 `platform_config.yaml` 的 `platform.aliases` 中登记。
 
-### 2. 完善平台配置（首次发布流程步骤 4 的产物）
+### 2. 完善平台配置（首次发布执行过程中沉淀）
 
-在 `platform_config.yaml` 中填写：
+不预先探测页面：`init_platform.py` 先建骨架，**在首次发布执行过程中**根据
+实际页面确认的信息完善 `platform_config.yaml`：
 
 ```yaml
 platform:
@@ -45,9 +46,9 @@ platform:
     profile_dir: "" # 浏览器持久 profile（登录态兜底），留空用默认
     downloads_dir: ""
 material_structure:
-  fields: {...}           # 探测发布页后填写（字段/候选值，见下）
-default_config: {...}     # 自动模式默认模板
-publish_script: ""        # 编写发布脚本后回填
+  fields: {...}           # 首次发布执行过程中按实际表单补充（字段/候选值，见下）
+default_config: {...}     # 自动模式默认模板（执行中完善）
+publish_script: ""        # 首次发布成功后回填
 ```
 
 ### 3. 物料数据结构约定
@@ -69,15 +70,16 @@ publish_script: ""        # 编写发布脚本后回填
 新平台请完整梳理表单的每个字段并登记候选值，**缺字段会导致发布脚本
 无法完成表单**。
 
-### 4. 编写平台发布脚本（基于通用发布框架）
+### 4. 编写平台发布脚本（基于通用发布框架，首次发布执行中完成）
 
 平台脚本**继承通用发布框架** `lib/publish_framework.py` 的
 `PlatformPublisher`：框架提供登录态管理（storageState + VNC 人机协作）、
 通用填表、上传、提交、结果等待；子类填写选择器类属性并覆写平台差异 hook。
-按 [publish-framework.md](publish-framework.md) 扩展指南编写
-`publish_scripts/{platform}_publish.py`（可参考
-`scripts/publish_scripts/template_publish.py` 示例），回填
-`publish_script` 字段。同一平台只维护一份子类（框架可复用原则）。
+**首次发布执行中**先写最小子类 → 执行发布 → 失败时按需 probe 页面并修复
+脚本/补充选择器 → 成功后固化并回填 `publish_script` 字段。扩展指南见
+[publish-framework.md](publish-framework.md)（可参考
+`scripts/publish_scripts/template_publish.py` 示例）。同一平台只维护一份
+子类（框架可复用原则）。
 
 ### 5. 平台特有提示词库（可选）
 

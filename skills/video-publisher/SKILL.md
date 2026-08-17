@@ -45,8 +45,9 @@ metadata:
 - "发布到微信视频号，分类是科技"
 - "publish this video to youtube"
 
-首次使用某平台时自动执行「首次发布流程」（探测发布页 → 整理物料数据结构 →
-编写发布脚本），之后同平台发布走「非首次发布流程」。
+首次使用某平台时自动执行「首次发布流程」——agent 直接走完整个发布流程，
+**首次发布成功即完成平台接入**（过程中补充发布脚本与物料数据结构，下次
+复用）；之后同平台发布走「非首次发布流程」。
 
 ## 依赖（Dependencies）
 
@@ -124,42 +125,40 @@ Manual 模式确认点：
 
 ### 首次发布流程（平台无配置或无发布脚本时）
 
+**核心思想：不做独立探测步骤——agent 直接走完整个发布流程，首次发布成功
+即完成平台接入**（执行中补充发布脚本与物料数据结构，下次复用）：
+
 ```
 1. 收到用户发布视频指令（解析：视频文件、平台、项目）
 2. 运行环境检查（check_prereqs.py）
 3. 平台检测与目录、配置初始化（init_workspace.py → init_platform.py → verify）
-4. 发布物料数据结构整理、编写该平台自动化发布脚本   ★核心步骤
-5. 项目检测与目录、配置初始化（init_project.py → verify）
-6. 物料数据生成（generate_material.py：ffprobe + comfyui-scheduler 封面文生图）
-7. 执行发布脚本（publish_video.py，失败则回到步骤 4 自愈）
-8. 成功 → 汇报结果
+4. 项目检测与目录、配置初始化（init_project.py → verify）
+5. 物料数据生成（generate_material.py：ffprobe + comfyui-scheduler 封面文生图）
+6. 首次发布执行 ★（走完整发布流程，边发布边沉淀资产）
+7. 发布成功 → 资产已落盘，汇报结果
 ```
 
-**步骤 4 详解（「发布物料数据结构整理、编写该平台自动化发布脚本」）：**
+**步骤 6 详解（「首次发布执行」）：**
 
-1. **探测发布页 DOM**：`probe_page.py --cdp-url ... --url <发布页>` 通过 CDP
-   调用有头浏览器获取页面结构（输出 markdown dump）。**支持人机协作**：需要
-   登录时先指定 `--wait-url-contains <登录页特征>`，脚本阻塞等待，agent 提醒
-   用户通过 VNC 登录。
-2. **整理物料数据结构**：根据 dump 梳理发布表单的字段、候选值、控件定位，
-   写入 `platform_config.yaml` 的 `material_structure.fields`；同时生成自动模式
-   默认配置模板 `default_config`。**物料数据结构保存在平台级配置中，供 agent
-   和脚本共同调用。**
-3. **编写发布脚本（基于通用框架扩展）**：平台脚本继承通用发布框架
-   `scripts/lib/publish_framework.py` 的 `PlatformPublisher` 基类——登录态
-   管理（storageState + VNC 人机协作）、通用填表、视频/封面上传、提交、
-   结果等待、错误 envelope 全部开箱即用。按探测结果填写类属性（选择器），
-   仅对平台差异覆写对应 hook（树形分区/短信校验/提交前勾选等），参考
-   `scripts/publish_scripts/template_publish.py` 与
-   `references/publish-framework.md`。产物为
-   `{platform}/publish_scripts/{platform}_publish.py`，回填
-   `publish_script` 字段。
+1. **编写最小发布脚本**：基于通用发布框架 `scripts/lib/publish_framework.py`
+   的 `PlatformPublisher` 写最小子类（登录态管理 storageState + VNC 人机协作、
+   通用填表、上传、提交、错误 envelope 开箱即用），先填已知选择器，其余
+   留空走框架通用实现，参考 `scripts/publish_scripts/template_publish.py` 与
+   `references/publish-framework.md`。
+2. **执行发布**：`publish_video.py` 运行脚本，逐步完成 登录 → 上传视频 →
+   填表 → 封面上传 → 提交。登录/验证码/风控时脚本阻塞等待，agent 实时转达
+   用户（自动经 agent channel 推送），绝不绕过验证。
+3. **执行中沉淀资产（不做单独探测步骤）**：定位失败或需确认页面结构时，
+   用 `probe_page.py` 抓取 DOM 或查看截图，然后修复脚本（补选择器/覆写
+   hook）重试；把确认的表单字段、候选值（分区选项）、控件定位写入
+   `platform_config.yaml` 的 `material_structure.fields` 并完善
+   `default_config` 与 `login_indicator`。
+4. **成功即落盘**：发布成功后固化脚本选择器，回填 `publish_script` 字段，
+   运行 `verify_platform_config.py` 校验（WARN 应已消失）。此后该平台所有
+   发布走非首次流程。
    **脚本规范**：必须继承框架（禁止脱离框架另写）；同平台所有项目共用一份
-   （禁止复制改写）；业务数据只来自 yaml；登录/验证码/风控一律阻塞等待 +
-   VNC 提示（自动经 agent channel 推送），绝不绕过验证；每步输出 `@ENV@`
-   进度；失败抛错退出非零。
-4. **自愈**：后续执行失败时，重新审查脚本与页面结构（重新 probe），修复后重试
-   （见 references/self-healing.md）。
+   （禁止复制改写）；业务数据只来自 yaml；每步输出 `@ENV@` 进度；失败抛错
+   退出非零（触发自愈循环，见 references/self-healing.md）。
 
 ### 非首次发布流程（平台已有配置与发布脚本）
 
@@ -169,7 +168,7 @@ Manual 模式确认点：
 3. 项目检测（存在则复用，否则 init_project.py）
 4. 物料数据生成
 5. 执行发布脚本
-6. 成功 → 汇报；失败 → 回到"发布物料数据结构整理、编写该平台自动化发布脚本"
+6. 成功 → 汇报；失败 → 回到"首次发布执行"的沉淀环节（修复脚本/物料结构后重试）
 ```
 
 详细步骤与命令见 references/workflow-first-publish.md 与
@@ -205,9 +204,10 @@ references/workflow-publish.md。
 
 ## 自愈机制
 
-发布失败（脚本非零退出）→ 回到步骤 4：记录失败 → 重新 probe 页面（可能
-已改版）→ 修复脚本/物料结构 → 校验 → 幂等重试。连续两次失败仍无法定位则
-停止并携带证据（截图/日志/dump）向用户报告。详见 references/self-healing.md。
+发布失败（脚本非零退出）→ 回到「首次发布执行」的沉淀环节：记录失败 →
+按需 probe 页面（可能已改版）→ 修复脚本/物料结构 → 校验 → 幂等重试。
+连续两次失败仍无法定位则停止并携带证据（截图/日志/dump）向用户报告。
+详见 references/self-healing.md。
 
 ## 新平台接入
 
@@ -228,7 +228,7 @@ references/workflow-publish.md。
 
 ## References
 
-- [workflow-first-publish.md](references/workflow-first-publish.md) — 首次发布流程（含步骤 4 详解）
+- [workflow-first-publish.md](references/workflow-first-publish.md) — 首次发布流程（含首次发布执行详解）
 - [publish-framework.md](references/publish-framework.md) — 发布脚本框架扩展指南（hooks + 平台类型模式）
 - [workflow-publish.md](references/workflow-publish.md) — 非首次发布流程
 - [human-collab.md](references/human-collab.md) — VNC + CDP 人机协作协议

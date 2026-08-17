@@ -1,8 +1,8 @@
 # 非首次发布流程（Workflow — Publish）
 
 > **何时加载：** 目标平台已有 `platform_config.yaml` 且发布脚本
-> `publish_scripts/{platform}_publish.py` 可用（`publish_script` 字段已回填）。
-> 大部分发布走本流程，简洁高效。
+> `publish_scripts/{platform}_publish.py` 可用（`publish_script` 字段已回填，
+> 首次发布已成功落盘）。大部分发布走本流程，简洁高效。
 
 ## 流程总览
 
@@ -12,8 +12,8 @@
 3. 项目检测
 4. 物料数据生成
 5. 执行发布脚本
-6. 成功 → 汇报；失败 → 回到"发布物料数据结构整理、编写该平台自动化发布脚本"
-   （首次流程步骤 4，见 workflow-first-publish.md）
+6. 成功 → 汇报；失败 → 回到"首次发布执行"的沉淀环节
+   （修复脚本/物料结构后重试，见 workflow-first-publish.md 步骤 6）
 ```
 
 ## 步骤 1 — 收到用户发布视频指令
@@ -24,7 +24,7 @@
 
 - 检查 `{workspace}/video_publiser_data/{platform}/platform_config.yaml` 是否存在。
 - 不存在 → 转入首次发布流程；存在 → 校验 `publish_script` 指向的脚本是否存在，
-  不存在 → 转入首次流程步骤 4。
+  不存在 → 转入首次发布流程的「首次发布执行」步骤。
 
 ## 步骤 3 — 项目检测
 
@@ -36,15 +36,15 @@
 
 ## 步骤 4 — 物料数据生成
 
-同首次流程步骤 6（generate_material.py + 手动模式审核点）。
+同首次流程步骤 5（generate_material.py + 手动模式审核点）。
 
 ## 步骤 5 — 执行发布脚本
 
-同首次流程步骤 7（publish_video.py + 人机协作 + 手动模式提交前确认点）。
+同首次流程步骤 6b（publish_video.py + 人机协作 + 手动模式提交前确认点）。
 
 ## 步骤 6 — 成功汇报 / 失败自愈
 
 - 成功：汇报结果。
-- 失败：回到"发布物料数据结构整理、编写该平台自动化发布脚本"步骤
-  （首次流程步骤 4），按 [self-healing.md](self-healing.md) 处理：
-  重新 probe → 修复脚本/物料结构 → 重试。
+- 失败：回到「首次发布执行」的沉淀环节（workflow-first-publish.md 步骤 6），
+  按 [self-healing.md](self-healing.md) 处理：按需 probe 页面 → 修复脚本/
+  物料结构 → 重试。

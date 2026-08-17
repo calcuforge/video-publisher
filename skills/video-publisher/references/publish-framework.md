@@ -1,9 +1,9 @@
 # 发布脚本框架扩展指南（Publish Framework）
 
-> **何时加载：** 首次发布流程步骤 4c「编写该平台自动化发布脚本」，或现有
-> 平台脚本需要适配页面改版/新增步骤。本指南说明如何基于通用发布框架
-> （`scripts/lib/publish_framework.py` 的 `PlatformPublisher`）扩展自动化
-> 发布流程。
+> **何时加载：** 首次发布流程的「首次发布执行」步骤（编写/补充平台发布
+> 脚本），或现有平台脚本需要适配页面改版/新增步骤。本指南说明如何基于
+> 通用发布框架（`scripts/lib/publish_framework.py` 的 `PlatformPublisher`）
+> 扩展自动化发布流程。
 
 ## 框架思想
 
@@ -40,7 +40,7 @@ fill_form(逐字段 → fill_field) → upload_cover → [manual_checkpoint]
 | `submit` | 按 `SUBMIT_SELECTOR` 或"发布"文本点击 | 分步发布（保存草稿→再发布） |
 | `wait_result` | 等待 `SUBMIT_OK_URL_CONTAINS` / `SUBMIT_OK_SELECTOR` | 成功提示是 toast/弹窗/跳转混合 |
 
-## 扩展步骤（首次流程步骤 4c）
+## 扩展步骤（首次发布执行中）
 
 ```bash
 # 1. 新建平台发布脚本（不要复制模板，按需参考）

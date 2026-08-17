@@ -34,11 +34,11 @@ REQUIRED_KEYS = [
     ("default_config", ["title_format", "auto_cover"]),
 ]
 
-# 首次流程探测/填写后才有值的字段：刚 init 时为空属预期（WARN），
-# 发布前复验应无警告。
+# 首次发布执行过程中确认后才有的字段：刚 init 时为空属预期（WARN），
+# 发布成功后复验应无警告。
 WARN_KEYS = [
-    ("platform", ["publish_page_url"], "首次流程步骤 4a 用 probe_page.py 探测后填写"),
-    ("platform", ["login_indicator"], "首次流程步骤 4a 探测登录特征后填写"),
+    ("platform", ["publish_page_url"], "首次发布执行中按实际发布页填写"),
+    ("platform", ["login_indicator"], "首次发布执行中确认登录特征后填写"),
     ("platform", ["cdp"], "通常无需修改，可保留默认"),
     ("platform", ["login"], "storageState 路径，留空用默认 {data_dir}/storage_state.json"),
 ]
