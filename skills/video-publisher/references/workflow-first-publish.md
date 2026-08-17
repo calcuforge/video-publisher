@@ -112,31 +112,44 @@ material_structure:
 回填平台信息：`publish_page_url`、`login_indicator.url_contains`（登录页特征）、
 `login_indicator.selector`（已登录特征，如"投稿"按钮）。
 
-### 4c. 编写平台自动化发布脚本
+### 4c. 编写平台自动化发布脚本（基于通用发布框架）
 
-```bash
-cp "${SKILL_DIR}/scripts/publish_scripts/template_publish.py" \
-   {platform_dir}/publish_scripts/{platform}_publish.py
+平台脚本**继承通用发布框架**（`scripts/lib/publish_framework.py` 的
+`PlatformPublisher` 基类），框架已实现：CDP 连接打开发布页、登录态管理
+（storageState 优先 + VNC 人机协作登录与保存）、通用填表（按
+material_structure 与 label 匹配）、视频/封面上传、提交、结果等待、错误
+envelope 与自愈提示。agent 只需：
+
+```python
+# {platform_dir}/publish_scripts/{platform}_publish.py
+from lib.publish_framework import PlatformPublisher
+
+class BilibiliPublisher(PlatformPublisher):
+    PUBLISH_URL = "https://member.bilibili.com/platform/upload/video/frame"
+    FORM_READY_SELECTOR = "input[placeholder*='标题']"
+    TAGS_SELECTOR = "input[placeholder*='标签']"
+    SUBMIT_SELECTOR = "button:has-text('发布')"
+    SUBMIT_OK_URL_CONTAINS = "/manage/create"
+    # 平台差异（树形分区/短信校验/提交前勾选等）→ 覆写对应 hook
+
+if __name__ == "__main__":
+    BilibiliPublisher.run_cli()
 ```
 
-按探测结果填写模板顶部的常量（选择器、登录特征、成功特征），实现以下步骤：
+1. 依据探测结果填写类属性（选择器、登录特征、成功特征）；
+2. 平台差异部分覆写 hook（参考 `scripts/publish_scripts/template_publish.py`
+   的注释示例与 [publish-framework.md](publish-framework.md) 的平台类型模式：
+   树形分区覆写 `fill_field`、登录二次校验覆写 `wait_login`、提交前勾选覆写
+   `before_submit` 等）；
+3. 回填 `platform_config.yaml` 的 `publish_script` 字段，运行
+   `verify_platform_config.py` 校验。
 
-1. 连接有头浏览器（CDP），打开发布页
-2. `wait_login` — 未登录则 `human_wait_url` 阻塞等待，输出 VNC 提示
-3. 上传视频 → `human_wait_selector` 等待上传/转码完成
-4. 填写标题/简介/标签/分区（`fill_by_label` / `fill_by_placeholder` /
-   `select_by_text`，探测结果里没有 label 关联时用 CSS 选择器）
-5. 上传封面
-6. 提交发布 → 成功特征出现或 `human_wait` 等待人工处理风控
-7. 输出最终 envelope
-
-**脚本规范（可复用原则）**：
-- 同一平台的所有项目/所有视频共用一份脚本，业务数据只来自 yaml 配置；
+**脚本规范（框架可复用原则）**：
+- 必须继承 `PlatformPublisher`，禁止脱离框架另写；同一平台一份子类，新项目
+  共用，业务数据只来自 yaml 配置；
 - 每一步用 `env_out()` 输出进度；失败抛 `RuntimeError`（非零退出触发自愈）；
-- 登录/验证码/风控一律用 `human_wait_*` 阻塞 + `@ENV@` 提示，不尝试绕过验证。
-
-最后回填 `platform_config.yaml` 的 `publish_script` 字段，并运行
-`verify_platform_config.py` 校验。
+- 登录/验证码/风控一律用 `human_wait_*` 阻塞 + `@ENV@` 提示（自动经 agent
+  channel 推送），不尝试绕过验证。
 
 ## 步骤 5 — 项目检测与目录、配置初始化
 

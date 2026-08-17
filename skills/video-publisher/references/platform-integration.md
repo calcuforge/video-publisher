@@ -69,11 +69,15 @@ publish_script: ""        # 编写发布脚本后回填
 新平台请完整梳理表单的每个字段并登记候选值，**缺字段会导致发布脚本
 无法完成表单**。
 
-### 4. 编写平台发布脚本
+### 4. 编写平台发布脚本（基于通用发布框架）
 
-按 `scripts/publish_scripts/template_publish.py` 的说明编写
-`publish_scripts/{platform}_publish.py`，回填 `publish_script` 字段。
-同一平台只维护一份脚本（可复用原则）。
+平台脚本**继承通用发布框架** `lib/publish_framework.py` 的
+`PlatformPublisher`：框架提供登录态管理（storageState + VNC 人机协作）、
+通用填表、上传、提交、结果等待；子类填写选择器类属性并覆写平台差异 hook。
+按 [publish-framework.md](publish-framework.md) 扩展指南编写
+`publish_scripts/{platform}_publish.py`（可参考
+`scripts/publish_scripts/template_publish.py` 示例），回填
+`publish_script` 字段。同一平台只维护一份子类（框架可复用原则）。
 
 ### 5. 平台特有提示词库（可选）
 

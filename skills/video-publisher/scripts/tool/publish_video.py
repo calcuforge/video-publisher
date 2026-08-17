@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -97,8 +98,12 @@ def main() -> None:
         "--material", args.material,
         "--cdp-url", cdp_url,
     ]
+    # 平台脚本位于工作区（不在 skill 目录内），把本 skill 的 scripts/ 注入
+    # PYTHONPATH，使其能 import lib.*（发布框架、cdp、yamlutil 等）
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(SKILL_ROOT) + os.pathsep + env.get("PYTHONPATH", "")
     # 透传子进程输出（含 @ENV@ 人机协作行），退出码一致
-    result = subprocess.run(cmd, timeout=3600)
+    result = subprocess.run(cmd, env=env, timeout=3600)
     sys.exit(result.returncode)
 
 

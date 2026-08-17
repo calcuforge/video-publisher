@@ -145,12 +145,19 @@ Manual 模式确认点：
    写入 `platform_config.yaml` 的 `material_structure.fields`；同时生成自动模式
    默认配置模板 `default_config`。**物料数据结构保存在平台级配置中，供 agent
    和脚本共同调用。**
-3. **编写发布脚本**：复制 `scripts/publish_scripts/template_publish.py` 为
-   `{platform}/publish_scripts/{platform}_publish.py`，按探测结果填写选择器，
-   实现 连接→登录检测→上传视频→填写表单→上传封面→提交 步骤。
-   **脚本规范**：可复用（同平台所有项目共用，业务数据只来自 yaml）；登录/
-   验证码/风控一律阻塞等待 + VNC 提示，绝不绕过验证；每步输出 `@ENV@` 进度；
-   失败抛错退出非零。
+3. **编写发布脚本（基于通用框架扩展）**：平台脚本继承通用发布框架
+   `scripts/lib/publish_framework.py` 的 `PlatformPublisher` 基类——登录态
+   管理（storageState + VNC 人机协作）、通用填表、视频/封面上传、提交、
+   结果等待、错误 envelope 全部开箱即用。按探测结果填写类属性（选择器），
+   仅对平台差异覆写对应 hook（树形分区/短信校验/提交前勾选等），参考
+   `scripts/publish_scripts/template_publish.py` 与
+   `references/publish-framework.md`。产物为
+   `{platform}/publish_scripts/{platform}_publish.py`，回填
+   `publish_script` 字段。
+   **脚本规范**：必须继承框架（禁止脱离框架另写）；同平台所有项目共用一份
+   （禁止复制改写）；业务数据只来自 yaml；登录/验证码/风控一律阻塞等待 +
+   VNC 提示（自动经 agent channel 推送），绝不绕过验证；每步输出 `@ENV@`
+   进度；失败抛错退出非零。
 4. **自愈**：后续执行失败时，重新审查脚本与页面结构（重新 probe），修复后重试
    （见 references/self-healing.md）。
 
@@ -182,7 +189,8 @@ references/workflow-publish.md。
   `platform_config.yaml` 的 `platform.login.storage_state_path` 覆盖）。
   每次发布优先复用登录态；**缺失或过期**（打开页面后未命中
   `login_indicator`）时启用 VNC 人机协作登录，成功后自动保存登录态。
-  实现位于 `lib/cdp.ensure_login()`，发布脚本模板默认调用。
+  实现位于 `lib/cdp.ensure_login()`，发布框架 `PlatformPublisher.wait_login`
+  默认调用（子类可覆写追加短信/滑块二次校验等待）。
 - 脚本遇到登录/验证码/风控等会输出 `@ENV@ {"env_status": "human_collab", ...}`
   并**阻塞等待**。agent 必须原样转达用户：
   > ⚠ 需要用户通过 VNC 配合：<操作说明>，脚本正在等待（每 30s 心跳）。
@@ -212,7 +220,8 @@ references/workflow-publish.md。
 1. **输出约束**：所有文件写入 `video_publiser_data` 下，禁止系统临时目录。
 2. **模式来源**：每次从 `project_config.yaml` 读取 `creation_mode`。
 3. **物料契约**：发布脚本只消费 materials.yaml 与配置，禁止硬编码业务数据。
-4. **可复用**：同平台一份发布脚本，新项目/新视频不得复制改写成另一份。
+4. **框架复用**：平台发布脚本必须继承 `PlatformPublisher` 框架；同平台一份
+   子类，新项目/新视频不得复制改写成另一份。
 5. **不绕过验证**：登录/验证码一律人工（VNC），脚本只等待、不破解。
 6. **失败必自愈**：失败先诊断（probe + 审查），禁止盲目重试。
 7. **转达提示**：`@ENV@ human_collab` 消息必须转达用户，不得静默等待。
@@ -220,6 +229,7 @@ references/workflow-publish.md。
 ## References
 
 - [workflow-first-publish.md](references/workflow-first-publish.md) — 首次发布流程（含步骤 4 详解）
+- [publish-framework.md](references/publish-framework.md) — 发布脚本框架扩展指南（hooks + 平台类型模式）
 - [workflow-publish.md](references/workflow-publish.md) — 非首次发布流程
 - [human-collab.md](references/human-collab.md) — VNC + CDP 人机协作协议
 - [self-healing.md](references/self-healing.md) — 自愈机制
