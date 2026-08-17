@@ -77,17 +77,18 @@ python "${SKILL_DIR}/scripts/tool/check_prereqs.py" [--workspace <工作区>]
 ## 工作目录（输出约束）
 
 **所有发布相关文件必须位于工作区 `video_publiser_data` 目录下，禁止写到
-系统临时目录或工作区之外。** 目录结构为 `video_publiser_data-[平台]-[项目]`
-（层级展开如下），不存在则新建：
+系统临时目录或工作区之外。** `video_publiser_data` 是**单独一层目录**（数据
+根，不存在则新建），平台、项目目录在其下逐层展开，**目录名不带
+`video_publiser_data` 前缀**：
 
 ```text
-{workspace}/video_publiser_data/
-├── {platform}/                      # 平台目录，如 bilibili（= video_publiser_data-bilibili）
+{workspace}/video_publiser_data/     # 数据根（单独一层目录，无前缀命名）
+├── {platform}/                      # 平台目录，如 bilibili
 │   ├── platform_config.yaml         # 平台级配置：物料数据结构 + 默认模板 + CDP/登录信息
 │   ├── publish_scripts/             # 该平台自动化发布脚本（首次流程编写，可复用）
 │   │   └── {platform}_publish.py
 │   └── projects/
-│       └── {project}/               # 项目目录，如 tech（= video_publiser_data-bilibili-tech）
+│       └── {project}/               # 项目目录，如 tech
 │           ├── project_config.yaml  # 项目级配置：模式/发布默认值/封面生成配置
 │           ├── materials/           # 每次发布的物料目录 {date}_{video_name}/
 │           │   └── .../materials.yaml  # 物料数据（标题/简介/标签/分区/封面/视频）

@@ -4,17 +4,19 @@
 「发布物料数据结构整理、编写该平台自动化发布脚本」和「物料数据生成」步骤
 中参考格式与取值。示例场景：向 B 站发布科技分类视频《GPU架构详解》。
 
-目录结构同时演示工作区命名约定 `video_publiser_data-[平台]-[项目]`：
+目录结构演示实际工作区布局：`video_publiser_data` 为**单独一层目录**（数据
+根），平台/项目目录在其下逐层展开，目录名不带 `video_publiser_data` 前缀：
 
 ```text
 example_configs/
-├── agent_channel.yaml               # 工作区级人机协作通知推送配置（可选）
-└── video_publiser_data-bilibili-tech/
-    ├── platform_config.yaml          # 平台级配置（B站，含物料数据结构与默认模板）
-    └── projects/tech/
-        ├── project_config.yaml       # 项目级配置（tech 科技类）
-        └── materials/20260813_gpu_architecture/
-            └── materials.yaml        # 单次发布的物料数据
+└── video_publiser_data/             # 数据根（= {workspace}/video_publiser_data）
+    ├── agent_channel.yaml            # 工作区级人机协作通知推送配置（可选）
+    └── bilibili/                     # 平台目录
+        ├── platform_config.yaml      # 平台级配置（B站，含物料数据结构与默认模板）
+        └── projects/tech/            # 项目目录
+            ├── project_config.yaml   # 项目级配置（tech 科技类）
+            └── materials/20260813_gpu_architecture/
+                └── materials.yaml    # 单次发布的物料数据
 ```
 
 文件中的路径均为示例占位（`{workspace}` = 实际工作区绝对路径）。实际运行时：
