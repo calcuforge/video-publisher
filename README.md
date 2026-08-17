@@ -25,6 +25,12 @@ human-in-the-loop collaboration via VNC + headed Chromium (CDP).
   structure, and retries (idempotent).
 - **Dependencies**: comfyui-scheduler (cover image text-to-image), Playwright +
   VNC + headed Chromium (automation + human-collab), ffmpeg (video metadata).
+- **Environment conventions aligned with
+  [hermes-hitl-environment](https://github.com/calcuforge/hermes-hitl-environment)**:
+  agents drive the shared Chromium over CDP (`9222`), humans watch/take over via
+  VNC (`5900`) or noVNC (`6080/vnc.html`); ports resolve from env vars
+  (`PLAYWRIGHT_CDP_URL`, `CHROME_REMOTE_DEBUGGING_PORT`, `VNC_PORT`,
+  `NOVNC_PORT`) with config/defaults as fallback.
 
 ## Project Structure
 
@@ -37,10 +43,12 @@ video-publisher/
     │   ├── lib/                    # Shared utilities
     │   │   ├── yamlutil.py         # YAML load/save
     │   │   ├── net.py              # Path/network helpers
+    │   │   ├── env.py              # hermes-aligned env conventions (ports/CDP URL)
     │   │   └── cdp.py              # CDP + Playwright headed-browser helpers with
     │   │                           #   human-in-the-loop blocking waits (VNC hints)
     │   ├── tool/                   # Pipeline scripts
     │   │   ├── check_prereqs.py    # Environment check
+    │   │   ├── launch_browser.py   # Launch shared headed Chromium (hermes-aligned)
     │   │   ├── init_workspace.py   # Ensure workspace/video_publiser_data
     │   │   ├── init_platform.py    # Platform dir + platform_config.yaml (alias-aware)
     │   │   ├── init_project.py     # Project dir + project_config.yaml

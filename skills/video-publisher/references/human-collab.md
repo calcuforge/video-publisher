@@ -14,26 +14,50 @@
 用户 ←(VNC 观察/操作)→ 有头浏览器 ←(CDP:9222)← 发布脚本 ←(@ENV@提示)← agent
 ```
 
-## 启动有头浏览器（发布前准备）
+## 环境与端口约定（对齐 hermes-hitl-environment）
 
-任选一种方式，浏览器必须**有头**且开启调试端口：
+**标准人机协作环境是 [hermes-hitl-environment](https://github.com/calcuforge/hermes-hitl-environment)**：
+一个虚拟 Linux 桌面（Xvfb + Openbox + 共享 Chromium + VNC + noVNC），
+人类与 agent 操作**同一个浏览器窗口**——agent 经 CDP(9222) 驱动，
+人类经 VNC(5900) 或任意浏览器的 noVNC(6080/vnc.html) 观察与接管。
+
+端口与环境变量约定（与 hermes 的 .env.example 一致，解析优先级：
+命令行参数 > 环境变量 > 平台配置 > 默认值）：
+
+| 变量 | 默认 | 用途 |
+|------|------|------|
+| `PLAYWRIGHT_CDP_URL` | `http://127.0.0.1:9222` | Playwright 通过 CDP 驱动共享 Chromium |
+| `CHROME_REMOTE_DEBUGGING_PORT` | `9222` | Chromium 调试端口 |
+| `VNC_PORT` | `5900` | VNC 桌面端口 |
+| `NOVNC_PORT` | `6080` | noVNC（浏览器访问 `http://<host>:6080/vnc.html`） |
+| `CHROME_BIN` / `CHROME_PROFILE_DIR` / `CHROME_DOWNLOADS_DIR` | — | 浏览器可执行文件 / profile / 下载目录 |
+| `SCREEN_WIDTH` / `SCREEN_HEIGHT` | `1920` / `1080` | Chromium 窗口尺寸 |
+| `CHROME_EXTRA_FLAGS` | — | 附加启动参数 |
+
+### 启动有头浏览器（发布前准备）
+
+推荐方式：用本 skill 的 `launch_browser.py` 启动共享 Chromium（对齐 hermes
+launch-chromium.sh：单一持久 profile、CDP 调试端口、下载目录、崩溃锁清理）：
 
 ```bash
-# 方式 1：playwright chromium（若浏览器无界面环境，请配合 VNC/远程桌面使用）
-python -m playwright open --browser chromium --save-storage=auth.json &
-# 或者直接启动并保持窗口:
-chromium --remote-debugging-port=9222 --user-data-dir={workspace}/video_publiser_data/tmp/browser-profile
-
-# 方式 2：系统 Chrome/Edge（Windows 上推荐，可直接看到窗口）
-"C:\Program Files\Google\Chrome\Application\chrome.exe" \
-  --remote-debugging-port=9222 --user-data-dir=C:\Users\<你>\video_publisher_browser_profile
-
-# 方式 3：无界面服务器（Linux），先起 VNC:
-x11vnc -forever -display :0 &   # 之后 DISPLAY=:0 启动 chromium
+python "${SKILL_DIR}/scripts/tool/launch_browser.py" \
+    [--cdp-port 9222] [--profile-dir <持久profile>] [--downloads-dir <下载目录>]
+# 输出 JSON envelope，含 CDP URL 与 VNC/noVNC 接入方式；浏览器前台长驻（后台运行）
 ```
 
-- 建议使用固定的 `--user-data-dir`（浏览器 profile 的 cookie 作为兜底会话），
-  但**登录态的持久化以 playwright storageState 为主**（见下节）。
+或直接使用 hermes-hitl-environment（docker compose 一键起环境）：
+`cd hermes-hitl-environment && cp .env.example .env && docker compose up -d --build`，
+随后 `PLAYWRIGHT_CDP_URL=http://127.0.0.1:9222` 直接可用。
+
+Windows 本地调试也可手动启动（推荐固定 `--user-data-dir`，profile cookie 作
+为兜底会话；**登录态持久化以 playwright storageState 为主**，见下节）：
+
+```bash
+# 系统 Chrome/Edge（Windows 上推荐，可直接看到窗口）
+"C:\Program Files\Google\Chrome\Application\chrome.exe" \
+  --remote-debugging-port=9222 --user-data-dir=C:\Users\<你>\video_publisher_browser_profile
+```
+
 - 检查端口：`curl http://127.0.0.1:9222/json/version` 返回 JSON 即就绪。
 
 ## 登录态管理（storageState 优先，VNC 兜底）

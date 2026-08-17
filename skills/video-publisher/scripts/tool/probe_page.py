@@ -28,6 +28,7 @@ from pathlib import Path
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SKILL_ROOT))
 
+from lib.env import get_env
 from lib.net import ensure_utf8_stdio, require_abs
 
 ensure_utf8_stdio()
@@ -68,7 +69,7 @@ def format_dump(dump: dict) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Probe a publish page DOM via CDP")
-    parser.add_argument("--cdp-url", default="http://127.0.0.1:9222", help="CDP 调试地址")
+    parser.add_argument("--cdp-url", default="", help="CDP 调试地址（默认取环境变量 PLAYWRIGHT_CDP_URL，再默认 http://127.0.0.1:9222）")
     parser.add_argument("--url", required=True, help="要打开的发布页 URL")
     parser.add_argument("--output", required=True, help="探测结果输出文件（绝对路径，markdown）")
     parser.add_argument("--wait-url-contains", default="", help="打开页面后阻塞等待 URL 包含该字符串（登录跳转）")
@@ -81,13 +82,15 @@ def main() -> None:
         connect_browser, dump_page, env_out, human_wait_selector, human_wait_url, new_page,
     )
 
+    cdp_url = args.cdp_url or get_env("PLAYWRIGHT_CDP_URL") or "http://127.0.0.1:9222"
+
     if args.wait_url_contains and args.wait_selector:
         print(json.dumps({"status": "error", "msg": "--wait-url-contains 与 --wait-selector 只能指定其一", "data": {}},
                          ensure_ascii=False))
         sys.exit(1)
 
     try:
-        browser = connect_browser(args.cdp_url)
+        browser = connect_browser(cdp_url)
         page = new_page(browser, args.url)
         env_out("probe", f"已打开页面: {args.url}")
 

@@ -17,10 +17,16 @@ platform:
   # VNC 人机协作登录并重新保存。
   login:
     storage_state_path: "" # 留空 = 默认 {workspace}/video_publiser_data/bilibili/storage_state.json
+  # 环境端口对齐 hermes-hitl-environment：人类 VNC(5900)/noVNC(6080)，
+  # agent 经 CDP(9222) 驱动同一共享浏览器；解析优先级 环境变量 > 配置 > 默认
   cdp:
     host: 127.0.0.1
-    port: 9222 # 有头浏览器调试端口（--remote-debugging-port=9222）
+    port: 9222 # CHROME_REMOTE_DEBUGGING_PORT / PLAYWRIGHT_CDP_URL 可覆盖
+    vnc_port: 5900 # VNC 端口（VNC_PORT 可覆盖）
+    novnc_port: 6080 # noVNC 端口，浏览器访问 http://127.0.0.1:6080/vnc.html（NOVNC_PORT 可覆盖）
     browser_path: "" # 空 = playwright chromium；可填系统 Chrome/Edge 路径
+    profile_dir: "" # 留空默认 {workspace}/video_publiser_data/browser_profile
+    downloads_dir: "" # 留空默认 {workspace}/video_publiser_data/downloads
 # 物料数据结构：发布页表单字段的梳理结果（首次流程探测后填写）。
 # 与发布脚本 {platform}_publish.py 共享，脚本按此结构读取 materials.yaml。
 material_structure:

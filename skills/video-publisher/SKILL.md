@@ -57,7 +57,7 @@ metadata:
 | ffmpeg / ffprobe | 视频元数据探测 | 系统安装并加入 PATH |
 | comfyui-scheduler | 封面文生图 | `pip install -e <repo>`（https://github.com/calcuforge/comfyui-scheduler.git） |
 | ComfyUI 服务 | 文生图后端 | 本地运行，默认 http://127.0.0.1:8188 |
-| 有头浏览器 + VNC | 人机协作（登录/验证码） | 见 references/human-collab.md |
+| 有头浏览器 + VNC | 人机协作（登录/验证码） | 标准环境为 [hermes-hitl-environment](https://github.com/calcuforge/hermes-hitl-environment)（VNC:5900 / noVNC:6080 / CDP:9222），或 `launch_browser.py` 启动共享 Chromium；见 references/human-collab.md |
 
 前置检查（每次发布的第一步，必须执行）：
 
@@ -161,6 +161,12 @@ references/workflow-publish.md。
 
 ## 人机协作要点
 
+- **环境端口约定对齐 hermes-hitl-environment**：agent 经 CDP(9222) 驱动共享
+  有头 Chromium，用户经 VNC(5900) / noVNC(6080/vnc.html) 观察与介入。
+  解析优先级：命令行参数 > 环境变量（`PLAYWRIGHT_CDP_URL` /
+  `CHROME_REMOTE_DEBUGGING_PORT` / `VNC_PORT` / `NOVNC_PORT`）> 平台配置
+  （`platform.cdp`）> 默认值。启动共享浏览器用 `scripts/tool/launch_browser.py`
+  （对齐 hermes 的 launch-chromium.sh），或直接运行 hermes-hitl-environment。
 - 发布过程通过 **CDP 调用有头浏览器**，用户可经 **VNC** 观察与介入。
 - **登录态管理（storageState 优先）**：编写 playwright 自动化脚本时，登录态
   必须用 storageState 保存（平台级 `storage_state.json`，路径可由

@@ -31,7 +31,17 @@ platform:
     selector: ""          # 已登录元素特征选择器
   login:
     storage_state_path: ""  # 留空默认 {data_dir}/storage_state.json（storageState 登录态）
-  cdp: {host: 127.0.0.1, port: 9222, browser_path: ""}
+  # 端口对齐 hermes-hitl-environment：人类 VNC(5900)/noVNC(6080)，agent CDP(9222)
+  # 解析优先级：环境变量（PLAYWRIGHT_CDP_URL/CHROME_REMOTE_DEBUGGING_PORT/
+  # VNC_PORT/NOVNC_PORT）> 以下配置 > 默认值
+  cdp:
+    host: 127.0.0.1
+    port: 9222
+    vnc_port: 5900
+    novnc_port: 6080
+    browser_path: "" # 留空 = playwright chromium；可指向系统 Chrome/Edge
+    profile_dir: "" # 浏览器持久 profile（登录态兜底），留空用默认
+    downloads_dir: ""
 material_structure:
   fields: {...}           # 探测发布页后填写（字段/候选值，见下）
 default_config: {...}     # 自动模式默认模板

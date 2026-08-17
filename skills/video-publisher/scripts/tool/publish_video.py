@@ -31,6 +31,7 @@ from pathlib import Path
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SKILL_ROOT))
 
+from lib.env import get_env
 from lib.net import ensure_utf8_stdio, require_abs
 from lib.yamlutil import load_yaml
 
@@ -77,7 +78,10 @@ def main() -> None:
         sys.exit(1)
 
     platform_config = load_yaml(args.platform_config)
-    cdp_url = args.cdp_url or f"http://{platform_config.get('platform', {}).get('cdp', {}).get('host', '127.0.0.1')}:{platform_config.get('platform', {}).get('cdp', {}).get('port', 9222)}"
+    cdp = platform_config.get("platform", {}).get("cdp", {})
+    # 解析优先级：--cdp-url 参数 > 环境变量 PLAYWRIGHT_CDP_URL（hermes 约定）> 平台配置 > 默认
+    cdp_url = args.cdp_url or get_env("PLAYWRIGHT_CDP_URL") or \
+        f"http://{cdp.get('host', '127.0.0.1')}:{cdp.get('port', 9222)}"
 
     try:
         script = resolve_script(Path(args.platform_config), args.script)

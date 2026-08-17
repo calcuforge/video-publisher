@@ -42,12 +42,17 @@ def env_out(status: str, msg: str, **data) -> None:
     print(f"@ENV@ {line}", flush=True)
 
 
-def human_hint(desc: str, condition: str = "") -> None:
-    """Print the standard human-collab hint. Agents must relay this to the user."""
+def human_hint(desc: str, condition: str = "", cdp_url: str = "") -> None:
+    """Print the standard human-collab hint. Agents must relay this to the user.
+
+    The hint includes the human-collab entrances (VNC / noVNC / CDP) aligned
+    with hermes-hitl-environment conventions (see lib/env.py).
+    """
+    from lib.env import vnc_hint
     cond = f"（脚本将阻塞等待，直到检测到：{condition}）" if condition else ""
     env_out(
         "human_collab",
-        f"⚠ 需要用户通过 VNC 配合：{desc}{cond}",
+        f"⚠ 需要用户通过 VNC 配合：{desc}{cond}。接入方式：{vnc_hint(cdp_url=cdp_url)}",
         action="vnc",
         condition=condition,
     )
@@ -62,13 +67,16 @@ def check_cdp_port(host: str, port: int, timeout: float = 2.0) -> bool:
         return False
 
 
-def connect_browser(cdp_url: str):
+def connect_browser(cdp_url: str = ""):
     """Connect to a headed browser via its CDP endpoint.
 
-    Returns a playwright Browser object. The browser must already be running
-    headed with --remote-debugging-port (see human-collab.md for launch
-    instructions). Raises RuntimeError with a VNC hint if unreachable.
+    cdp_url 为空时按 lib/env.py 约定解析（PLAYWRIGHT_CDP_URL 环境变量 >
+    http://127.0.0.1:9222 默认）。返回 playwright Browser 对象；浏览器必须已
+    有头运行并开启调试端口（可用 scripts/tool/launch_browser.py 启动，参见
+    references/human-collab.md）。连接失败时抛出带 VNC 入口提示的 RuntimeError。
     """
+    from lib.env import resolve_cdp_url
+    cdp_url = resolve_cdp_url(cdp_url)
     if Page is None:
         raise RuntimeError("playwright not installed. Run: pip install -r requirements.txt")
     try:
@@ -80,9 +88,11 @@ def connect_browser(cdp_url: str):
         try:
             browser = pw.chromium.connect_over_cdp(cdp_url)
         except Exception as exc:  # pragma: no cover - environment dependent
+            from lib.env import vnc_hint
             raise RuntimeError(
                 f"无法通过 CDP 连接到有头浏览器 {cdp_url}: {exc}\n"
-                f"请先启动有头浏览器并开启调试端口，参见 references/human-collab.md"
+                f"请先启动有头浏览器并开启调试端口（可运行 launch_browser.py 或使用 "
+                f"hermes-hitl-environment）。接入方式：{vnc_hint(cdp_url=cdp_url)}"
             )
         return browser
 
@@ -90,10 +100,12 @@ def connect_browser(cdp_url: str):
 def new_page(browser, url: str = "", platform_config: Optional[dict] = None) -> Page:
     """Open a fresh tab.
 
-    Login-state policy (storageState 优先):
+    Login-state policy (storageState 优先，共享浏览器为兜底):
     - 若 platform_config 提供且该平台的 storageState 文件存在 → 新建 context
-      并载入登录态（不再依赖浏览器 profile 的 cookie）；
-    - 否则复用浏览器已有 context（用户通过 VNC 登录的那个可见窗口）。
+      并载入登录态；
+    - 否则复用浏览器已有 context（browser.contexts[0]）——与
+      hermes-hitl-environment 的共享 Chromium 约定一致：人类与 agent 操作
+      同一个浏览器窗口，用户通过 VNC 登录的那个可见会话。
     """
     state = load_login_state(storage_state_path(platform_config)) if platform_config else None
     if state is not None:

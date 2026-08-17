@@ -94,6 +94,8 @@ def check_workspace(workspace: str) -> list[str]:
 
 def check_cdp(cdp_url: str) -> list[str]:
     if not cdp_url:
+        cdp_url = os.environ.get("PLAYWRIGHT_CDP_URL", "")
+    if not cdp_url:
         return []
     from lib.cdp import check_cdp_port
     try:
