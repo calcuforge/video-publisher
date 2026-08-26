@@ -46,6 +46,24 @@
 
 同首次流程步骤 6b（publish_video.py + 人机协作 + 手动模式提交前确认点）。
 
+**非首次发布的登录态/验证码场景（重点）**：非首次发布 ≠ 免登录——storageState
+可能过期（token 失效、平台强制下线、cookie 被清），发布过程也可能遇到
+验证码/风控校验。处理链路由脚本自动执行，agent 负责转达与跟进：
+
+1. 脚本打开发布页后按 `login_indicator` 校验登录态；storageState **缺失或
+   过期** → 输出 `@ENV@ {"env_status": "human_collab", ...}` 并**阻塞等待**；
+2. 提交后出现验证码/风控 → `human_wait_*` 同样输出提示并阻塞等待；
+3. 每次输出人机协作提示时，脚本**自动**经 agent channel 推送通知（配置
+   `{workspace}/video_publiser_data/agent_channel.yaml` 或环境变量
+   `AGENT_CHANNEL`，见 [human-collab.md](human-collab.md)）；
+4. agent 必须把 `@ENV@` 消息**原样转达**用户（说明需通过 VNC 完成什么操作），
+   channel 未配置或推送失败时更要在对话中明确提示；
+5. 用户处理完成后脚本检测到条件满足（`human_collab_done`）自动继续；登录
+   成功会自动重新保存 storageState，后续发布再次复用。
+
+**agent 必须**：未收到 `human_collab_done` 或成功 envelope 前不得宣布成功、
+不得盲目重试；等待期间不得做无关操作错过用户反馈。
+
 ## 步骤 6 — 成功汇报 / 失败自愈
 
 - 成功：汇报结果。

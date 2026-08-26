@@ -179,6 +179,12 @@ Manual 模式确认点：
 详细步骤与命令见 references/workflow-first-publish.md 与
 references/workflow-publish.md。
 
+> **非首次发布注意**：登录态可能过期（storageState 失效/平台强制下线），
+> 发布中也可能遇到验证码/风控。脚本检测到时会输出 `@ENV@ human_collab`
+> 提示并阻塞等待，**自动**经 agent channel 推送通知；agent 必须原样转达
+> 用户通过 VNC 处理，完成后脚本自动继续并重新保存登录态。详见
+> workflow-publish.md 步骤 5。
+
 ## 人机协作要点
 
 - **环境端口约定对齐 hermes-hitl-environment**：agent 经 CDP(9222) 驱动共享
