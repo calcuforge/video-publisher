@@ -11,6 +11,9 @@ hermes agent gateway 的 channel 推送通知（如"请通过 VNC 完成登录"�
 - 执行 `hermes send [--to <目标频道>] --subject <标题> <消息>`，复用
   hermes gateway 已配置的频道凭据（Telegram/Discord/飞书/钉钉/企业微信等）；
 - 目标频道：--to 参数 > 环境变量 HERMES_SEND_TARGET > hermes 默认（home channel）；
+- **消息自动包含 VNC 接入地址**（优先取环境变量 `VNC_VIEWER_URL`，未设置
+  回退 hermes 环境约定的 `{host}:{VNC_PORT}`），用户收到推送即可按地址
+  接入浏览器处理；
 - hermes CLI 缺失或推送失败仅警告，不影响发布流程。
 
 输出: JSON envelope。data.sent 表示是否成功推送。
@@ -39,14 +42,23 @@ def main() -> None:
     parser.add_argument("--to", default="", help="目标频道（如 telegram / telegram:12345 / wecom），默认取 HERMES_SEND_TARGET")
     args = parser.parse_args()
 
+    from lib.env import vnc_hint
     from lib.notify import notify_human_collab
 
     if args.to:
         import os
         os.environ["HERMES_SEND_TARGET"] = args.to
 
+    # 推送消息必须包含 VNC 接入地址：@ENV@ 提示自带（noVNC/接入方式 字样）
+    # 则原样推送，否则自动附加（agent 手动写消息时兜底；注意消息里提到
+    # "VNC" 单词不等于包含地址，须按地址特征判断）
+    message = args.message
+    has_address = ("noVNC" in message) or ("noVnc" in message) or ("接入方式" in message)
+    if not has_address:
+        message = f"{message}。接入方式：{vnc_hint()}"
+
     target = get_env("HERMES_SEND_TARGET", "")
-    sent = notify_human_collab(args.message, title=args.title)
+    sent = notify_human_collab(message, title=args.title)
     print(json.dumps({
         "status": "ok" if sent else "warning",
         "msg": f"hermes channel 推送{'成功' if sent else '失败（详见 stderr；未安装 hermes 或 gateway 未运行）'}",

@@ -13,6 +13,10 @@ hermes 的 .env/.env.example 只是 docker compose 部署时的配置源（env_f
   CHROME_REMOTE_DEBUGGING_PORT=9222          共享 Chromium 调试端口
   VNC_PORT=5900                              VNC 端口
   NOVNC_PORT=6080                            noVNC 端口（浏览器访问 /vnc.html）
+  VNC_VIEWER_URL=                            VNC 接入地址（如 vnc://host:port 或
+                                             http://host:port/vnc.html）；设置后
+                                             vnc_hint() 以其为 VNC 地址，未设置
+                                             回退为 {host}:{VNC_PORT}
   DISPLAY=:99                                X display
   SCREEN_WIDTH=1920 / SCREEN_HEIGHT=1080     Chromium 窗口尺寸
   CHROME_BIN=chromium                        浏览器可执行文件
@@ -60,13 +64,17 @@ def cdp_port(cdp_url: str) -> int:
 def vnc_hint(host: str = "127.0.0.1", cdp_url: str = "") -> str:
     """生成人机协作入口提示（对齐 hermes 端口约定）。
 
-    cdp_url 显式传入时以其为准；否则按 resolve_cdp_url 约定解析。
+    VNC 地址优先取环境变量 VNC_VIEWER_URL（如 vnc://host:port 或
+    http://host:port/vnc.html），未设置时回退为 {host}:{VNC_PORT}；
+    cdp_url 显式传入时以其为准，否则按 resolve_cdp_url 约定解析。
     """
     vnc_port = get_env("VNC_PORT", "5900")
     novnc_port = get_env("NOVNC_PORT", "6080")
+    viewer_url = get_env("VNC_VIEWER_URL")
+    vnc_addr = viewer_url or f"{host}:{vnc_port}"
     resolved = cdp_url if cdp_url else resolve_cdp_url()
     return (
         f"浏览器 CDP: {resolved} | "
-        f"VNC: {host}:{vnc_port} | "
+        f"VNC: {vnc_addr} | "
         f"noVNC: http://{host}:{novnc_port}/vnc.html"
     )

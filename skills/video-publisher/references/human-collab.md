@@ -32,6 +32,7 @@
 | `CHROME_REMOTE_DEBUGGING_PORT` | `9222` | Chromium 调试端口 |
 | `VNC_PORT` | `5900` | VNC 桌面端口 |
 | `NOVNC_PORT` | `6080` | noVNC（浏览器访问 `http://<host>:6080/vnc.html`） |
+| `VNC_VIEWER_URL` | — | VNC 接入地址（如 `vnc://host:port` 或 `http://host:port/vnc.html`）；设置后提示/推送消息中的 VNC 地址取此值，未设置回退 `{host}:{VNC_PORT}` |
 | `CHROME_BIN` / `CHROME_PROFILE_DIR` / `CHROME_DOWNLOADS_DIR` | — | 浏览器可执行文件 / profile / 下载目录 |
 | `SCREEN_WIDTH` / `SCREEN_HEIGHT` | `1920` / `1080` | Chromium 窗口尺寸 |
 | `CHROME_EXTRA_FLAGS` | — | 附加启动参数 |
@@ -94,22 +95,31 @@ Windows 本地调试也可手动启动（推荐固定 `--user-data-dir`，profil
 - 首次流程的 probe_page.py 探测页面时，若浏览器会话已登录（profile cookie），
   探测结果即为登录后的发布页结构；登录态随后由发布脚本保存为 storageState。
 
-## agent 的职责：转达提示，不代替脚本
+## agent 的职责：转达提示 + channel 推送（不代替脚本）
 
-发布脚本遇到无法自动化的步骤时，会输出一行 `@ENV@` JSON：
+**推送流程（三步）**：
+
+```
+脚本检测到需要登录/验证码 → 脚本输出 @ENV@ human_collab 提示（含 VNC 地址）
+→ agent 通过 hermes agent 的 channel 推送该提示消息（含 VNC 地址）给用户
+```
+
+**1. 脚本输出提示**。发布脚本遇到无法自动化的步骤（登录态过期、验证码、
+风控等）时，输出一行 `@ENV@` JSON（消息自带 VNC/noVNC 接入地址）：
 
 ```json
-@ENV@ {"env_status": "human_collab", "msg": "⚠ 需要用户通过 VNC 配合：页面未登录...",
+@ENV@ {"env_status": "human_collab", "msg": "⚠ 需要用户通过 VNC 配合：页面未登录...。接入方式：浏览器 CDP: http://127.0.0.1:9222 | VNC: 127.0.0.1:5900 | noVNC: http://127.0.0.1:6080/vnc.html",
        "data": {"action": "vnc", "condition": "URL 包含 member.bilibili.com/..."}}
 ```
 
-**agent 必须**：把这条消息原样转达给用户，说明需要做什么（扫码登录/输入验证码/
-点击滑块），并告知脚本正在阻塞等待。脚本每 30 秒输出一次
-`human_collab_waiting` 心跳，完成时输出 `human_collab_done`。
+**2. agent 推送 channel 消息**。agent 看到 `@ENV@ human_collab` 提示后，
+通过 **hermes agent 的 channel** 推送通知（消息**必须包含 VNC 接入地址**；
+@ENV@ 提示自带，agent 手写消息时 CLI 会自动附加）：
 
-**agent channel 推送通知（通过 hermes agent gateway）**：脚本输出人机协作
-提示时会**自动**通过 **hermes agent 的 channel** 推送通知（登录态/验证码等
-场景均经 `human_hint()` 触发，无需额外配置文件）：
+```bash
+python "${SKILL_DIR}/scripts/tool/notify.py" --message "⚠ 需要用户通过 VNC 配合：请完成登录，脚本正在等待。接入方式：VNC: 127.0.0.1:5900 | noVNC: http://127.0.0.1:6080/vnc.html"
+python "${SKILL_DIR}/scripts/tool/notify.py" --message "..." --to telegram
+```
 
 - 机制：执行 `hermes send [--to <目标>] --subject video-publisher <消息>`
   CLI，复用 hermes gateway 已配置的频道凭据（Telegram / Discord / Slack /
@@ -120,12 +130,11 @@ Windows 本地调试也可手动启动（推荐固定 `--user-data-dir`，profil
   `wecom`、`feishu`、`discord:#ops`），未设置时由 hermes 发往默认（home
   channel）；
 - 推送失败（hermes 未安装/gateway 未运行）仅警告，**不影响发布流程**，
-  agent 仍须在对话中提示用户；agent 也可用 CLI 手动补推：
+  agent 仍须在对话中提示用户。
 
-```bash
-python "${SKILL_DIR}/scripts/tool/notify.py" --message "需要用户通过 VNC 完成登录"
-python "${SKILL_DIR}/scripts/tool/notify.py" --message "..." --to telegram
-```
+**3. 用户处理**。用户按推送消息中的 VNC 地址接入有头浏览器完成操作
+（扫码登录/输入验证码/点击滑块）；脚本每 30 秒输出一次
+`human_collab_waiting` 心跳，完成时输出 `human_collab_done`。
 
 **agent 禁止**：
 - 替用户处理验证码（自动打码/绕过）——所有验证一律走人工；

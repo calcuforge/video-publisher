@@ -1,10 +1,12 @@
 """
 Channel 通知推送 — 通过 hermes agent gateway 的 channel 消息推送提醒用户。
 
-人机协作需要用户介入（登录态过期、验证码、风控等）时，除脚本 stdout 的
-@ENV@ 提示外，通过 hermes 的 `hermes send` CLI 把消息推送到已配置的
-messaging channel（Telegram / Discord / Slack / 飞书 / 钉钉 / 企业微信 /
-微信 等，复用 hermes gateway 已配置的频道凭据）。
+推送流程（推送动作由 agent 执行，脚本不自动推送）：
+1. 脚本检测到需要登录/验证码 → 输出 @ENV@ human_collab 提示（含 VNC 地址）；
+2. agent 看到提示后，调用本模块（或 scripts/tool/notify.py CLI）把**含 VNC
+   地址**的提示消息推送到 hermes agent 的 messaging channel（Telegram /
+   Discord / Slack / 飞书 / 钉钉 / 企业微信 / 微信 等，复用 hermes gateway
+   已配置的频道凭据）。
 
 - 前置：hermes-agent 已安装且 `hermes gateway start` 运行中（凭据在
   `hermes gateway setup` 时配置，本 skill 不重复配置）

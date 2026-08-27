@@ -151,8 +151,9 @@ Manual 模式确认点：
    留空走框架通用实现，参考 `scripts/publish_scripts/template_publish.py` 与
    `references/publish-framework.md`。
 2. **执行发布**：`publish_video.py` 运行脚本，逐步完成 登录 → 上传视频 →
-   填表 → 封面上传 → 提交。登录/验证码/风控时脚本阻塞等待，agent 实时转达
-   用户（自动经 agent channel 推送），绝不绕过验证。
+   填表 → 封面上传 → 提交。登录/验证码/风控时脚本输出提示并阻塞等待，
+   agent 把含 VNC 地址的提示推送到 hermes agent 的 channel 并转达用户，
+   绝不绕过验证。
 3. **执行中沉淀资产（不做单独探测步骤）**：定位失败或需确认页面结构时，
    用 `probe_page.py` 抓取 DOM 或查看截图，然后修复脚本（补选择器/覆写
    hook）重试；把确认的表单字段、候选值（分区选项）、控件定位写入
@@ -181,18 +182,22 @@ references/workflow-publish.md。
 
 > **非首次发布注意**：登录态可能过期（storageState 失效/平台强制下线），
 > 发布中也可能遇到验证码/风控。脚本检测到时会输出 `@ENV@ human_collab`
-> 提示并阻塞等待，**自动**经 agent channel 推送通知；agent 必须原样转达
-> 用户通过 VNC 处理，完成后脚本自动继续并重新保存登录态。详见
+> 提示（含 VNC 地址）并阻塞等待；**agent 必须把该提示推送到 hermes agent
+> 的 channel** 通知用户（`scripts/tool/notify.py`，消息含 VNC 地址），并在
+> 对话中转达。用户处理后脚本自动继续并重新保存登录态。详见
 > workflow-publish.md 步骤 5。
 
 ## 人机协作要点
 
 - **环境端口约定对齐 hermes-hitl-environment**：agent 经 CDP(9222) 驱动共享
   有头 Chromium，用户经 VNC(5900) / noVNC(6080/vnc.html) 观察与介入。
+  **VNC 接入地址优先取环境变量 `VNC_VIEWER_URL`**（如 `vnc://host:port`），
+  未设置回退 `{host}:{VNC_PORT}`。
   解析优先级：命令行参数 > 环境变量（`PLAYWRIGHT_CDP_URL` /
-  `CHROME_REMOTE_DEBUGGING_PORT` / `VNC_PORT` / `NOVNC_PORT`）> 平台配置
-  （`platform.cdp`）> 默认值。启动共享浏览器用 `scripts/tool/launch_browser.py`
-  （对齐 hermes 的 launch-chromium.sh），或直接运行 hermes-hitl-environment。
+  `CHROME_REMOTE_DEBUGGING_PORT` / `VNC_PORT` / `NOVNC_PORT` /
+  `VNC_VIEWER_URL`）> 平台配置（`platform.cdp`）> 默认值。启动共享浏览器用
+  `scripts/tool/launch_browser.py`（对齐 hermes 的 launch-chromium.sh），或
+  直接运行 hermes-hitl-environment。
 - 发布过程通过 **CDP 调用有头浏览器**，用户可经 **VNC** 观察与介入。
 - **登录态管理（storageState 优先）**：编写 playwright 自动化脚本时，登录态
   必须用 storageState 保存（平台级 `storage_state.json`，路径可由
@@ -206,12 +211,13 @@ references/workflow-publish.md。
   > ⚠ 需要用户通过 VNC 配合：<操作说明>，脚本正在等待（每 30s 心跳）。
 
   直到出现 `human_collab_done` 或失败才继续/重试。
-- **agent channel 推送（hermes agent gateway）**：脚本输出人机协作提示时
-  自动通过 **hermes agent 的 channel** 推送通知（`hermes send` CLI，复用
-  gateway 已配置的 Telegram/Discord/飞书/钉钉/企业微信等频道凭据；目标频道
-  由环境变量 `HERMES_SEND_TARGET` 指定）。无需配置文件；hermes 未安装或
-  gateway 未运行时仅警告、不影响流程，agent 仍须在对话中转达。agent 也可用
-  `scripts/tool/notify.py --message "..."` 手动补推。详见 human-collab.md。
+- **agent channel 推送（hermes agent gateway）**：推送动作由 **agent 执行**——
+  脚本输出 `@ENV@ human_collab` 提示（含 VNC 地址）后，agent 用
+  `scripts/tool/notify.py` 把该提示（含 VNC 地址）推送到 **hermes agent 的
+  channel**（`hermes send` CLI，复用 gateway 已配置的 Telegram/Discord/飞书/
+  钉钉/企业微信等频道凭据；目标频道由环境变量 `HERMES_SEND_TARGET` 指定）。
+  无需配置文件；hermes 未安装或 gateway 未运行时仅警告、不影响流程，agent
+  仍须在对话中转达。详见 human-collab.md。
 - 具体协议、浏览器启动方式、等待条件写法见 references/human-collab.md。
 
 ## 自愈机制
