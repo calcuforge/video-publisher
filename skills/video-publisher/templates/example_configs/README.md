@@ -10,7 +10,6 @@
 ```text
 example_configs/
 └── video_publiser_data/             # 数据根（= {workspace}/video_publiser_data）
-    ├── agent_channel.yaml            # 工作区级人机协作通知推送配置（可选）
     └── bilibili/                     # 平台目录
         ├── platform_config.yaml      # 平台级配置（B站，含物料数据结构与默认模板）
         └── projects/tech/            # 项目目录
@@ -18,6 +17,10 @@ example_configs/
             └── materials/20260813_gpu_architecture/
                 └── materials.yaml    # 单次发布的物料数据
 ```
+
+人机协作通知推送**不需要配置文件**：通过 hermes agent gateway 的
+`hermes send` CLI 推送到已配置的 messaging channel（目标由环境变量
+`HERMES_SEND_TARGET` 指定），见 references/human-collab.md。
 
 文件中的路径均为示例占位（`{workspace}` = 实际工作区绝对路径）。实际运行时：
 

@@ -52,9 +52,9 @@ def human_hint(desc: str, condition: str = "", cdp_url: str = "") -> None:
     """Print the standard human-collab hint. Agents must relay this to the user.
 
     The hint includes the human-collab entrances (VNC / noVNC / CDP) aligned
-    with hermes-hitl-environment conventions (see lib/env.py). 若配置了 agent
-    channel（video_publiser_data/agent_channel.yaml 或环境变量 AGENT_CHANNEL），
-    同时通过 channel 推送通知提醒用户（lib/notify.py）。
+    with hermes-hitl-environment conventions (see lib/env.py). 同时自动通过
+    hermes agent 的 channel 推送通知提醒用户（lib/notify.py 的 hermes send；
+    hermes 未安装/未运行仅警告，不影响流程）。
     """
     from lib.env import vnc_hint
     cond = f"（脚本将阻塞等待，直到检测到：{condition}）" if condition else ""

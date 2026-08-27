@@ -206,10 +206,11 @@ references/workflow-publish.md。
   > ⚠ 需要用户通过 VNC 配合：<操作说明>，脚本正在等待（每 30s 心跳）。
 
   直到出现 `human_collab_done` 或失败才继续/重试。
-- **agent channel 推送**：脚本输出人机协作提示时自动通过配置的 channel 推送
-  通知（登录态/验证码场景）；若配置了 `agent_channel`（`{workspace}/video_
-  publiser_data/agent_channel.yaml` 或环境变量 `AGENT_CHANNEL`，支持
-  command/webhook 两种类型）则推送，失败仅警告不影响流程。agent 也可用
+- **agent channel 推送（hermes agent gateway）**：脚本输出人机协作提示时
+  自动通过 **hermes agent 的 channel** 推送通知（`hermes send` CLI，复用
+  gateway 已配置的 Telegram/Discord/飞书/钉钉/企业微信等频道凭据；目标频道
+  由环境变量 `HERMES_SEND_TARGET` 指定）。无需配置文件；hermes 未安装或
+  gateway 未运行时仅警告、不影响流程，agent 仍须在对话中转达。agent 也可用
   `scripts/tool/notify.py --message "..."` 手动补推。详见 human-collab.md。
 - 具体协议、浏览器启动方式、等待条件写法见 references/human-collab.md。
 

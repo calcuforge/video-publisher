@@ -53,9 +53,9 @@
 1. 脚本打开发布页后按 `login_indicator` 校验登录态；storageState **缺失或
    过期** → 输出 `@ENV@ {"env_status": "human_collab", ...}` 并**阻塞等待**；
 2. 提交后出现验证码/风控 → `human_wait_*` 同样输出提示并阻塞等待；
-3. 每次输出人机协作提示时，脚本**自动**经 agent channel 推送通知（配置
-   `{workspace}/video_publiser_data/agent_channel.yaml` 或环境变量
-   `AGENT_CHANNEL`，见 [human-collab.md](human-collab.md)）；
+3. 每次输出人机协作提示时，脚本**自动**经 hermes agent 的 channel 推送通知
+   （`hermes send` CLI，复用 gateway 频道凭据；目标频道由环境变量
+   `HERMES_SEND_TARGET` 指定，见 [human-collab.md](human-collab.md)）；
 4. agent 必须把 `@ENV@` 消息**原样转达**用户（说明需通过 VNC 完成什么操作），
    channel 未配置或推送失败时更要在对话中明确提示；
 5. 用户处理完成后脚本检测到条件满足（`human_collab_done`）自动继续；登录

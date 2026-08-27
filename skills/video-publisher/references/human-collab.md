@@ -107,21 +107,25 @@ Windows 本地调试也可手动启动（推荐固定 `--user-data-dir`，profil
 点击滑块），并告知脚本正在阻塞等待。脚本每 30 秒输出一次
 `human_collab_waiting` 心跳，完成时输出 `human_collab_done`。
 
-**agent channel 推送通知**：脚本输出人机协作提示时会**自动**通过配置的
-agent channel 推送通知（登录态/验证码等场景均经 `human_hint()` 触发）。
-若 channel 未配置或推送失败，agent 仍须在对话中提示用户；agent 也可用
-CLI 手动补推：
+**agent channel 推送通知（通过 hermes agent gateway）**：脚本输出人机协作
+提示时会**自动**通过 **hermes agent 的 channel** 推送通知（登录态/验证码等
+场景均经 `human_hint()` 触发，无需额外配置文件）：
+
+- 机制：执行 `hermes send [--to <目标>] --subject video-publisher <消息>`
+  CLI，复用 hermes gateway 已配置的频道凭据（Telegram / Discord / Slack /
+  飞书 / 钉钉 / 企业微信 / 微信 等）推送到用户的消息 channel；
+- 前置：hermes-agent 已安装、`hermes gateway start` 运行中（凭据在
+  `hermes gateway setup` 时配置，本 skill 不重复配置）；
+- 目标频道：环境变量 `HERMES_SEND_TARGET`（如 `telegram`、`telegram:12345`、
+  `wecom`、`feishu`、`discord:#ops`），未设置时由 hermes 发往默认（home
+  channel）；
+- 推送失败（hermes 未安装/gateway 未运行）仅警告，**不影响发布流程**，
+  agent 仍须在对话中提示用户；agent 也可用 CLI 手动补推：
 
 ```bash
 python "${SKILL_DIR}/scripts/tool/notify.py" --message "需要用户通过 VNC 完成登录"
+python "${SKILL_DIR}/scripts/tool/notify.py" --message "..." --to telegram
 ```
-
-channel 配置（可选，不配置则不推送）：
-- 配置文件 `{workspace}/video_publiser_data/agent_channel.yaml`（示例见
-  templates/example_configs/agent_channel.yaml），支持 `command`（命令模板，
-  如 `claude notify`）与 `webhook`（HTTP POST JSON）两种类型；
-- 或环境变量 `AGENT_CHANNEL`（http(s) 开头 = webhook URL，否则 = 命令模板）；
-- 推送失败仅警告，不影响发布流程。
 
 **agent 禁止**：
 - 替用户处理验证码（自动打码/绕过）——所有验证一律走人工；
