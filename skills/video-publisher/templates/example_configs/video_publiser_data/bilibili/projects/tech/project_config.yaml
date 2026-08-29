@@ -14,6 +14,8 @@ publish_defaults:
   tags: [科技, 硬核科普]
   partition: 科技
   auto_cover: true
+  # 人机协作通知推送目标（hermes send --to 格式）；空 = 推送到所有已发现 channel
+  hermes_send_targets: [weixin]
 # 物料生成配置
 material:
   video_source_dir: "D:/videos/tech" # 待发布视频所在目录（示例）

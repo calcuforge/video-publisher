@@ -16,6 +16,10 @@ publish_defaults:
   tags: []
   partition: "" # 默认投稿分区（需在平台 material_structure 的候选值内）
   auto_cover: true
+  # 人机协作通知推送目标（hermes send --to 格式，支持多个）。
+  # 空（默认）= 推送到所有已发现的 channel（hermes send --list 枚举）。
+  # 示例: [weixin, telegram:12345, feishu]
+  hermes_send_targets: []
 # 物料生成配置
 material:
   video_source_dir: "" # agent fills: 待发布视频所在目录（相对项目目录或绝对路径）

@@ -126,12 +126,13 @@ python "${SKILL_DIR}/scripts/tool/notify.py" --message "..." --to telegram
   飞书 / 钉钉 / 企业微信 / 微信 等）推送到用户的消息 channel；
 - 前置：hermes-agent 已安装、`hermes gateway start` 运行中（凭据在
   `hermes gateway setup` 时配置，本 skill 不重复配置）；
-- 目标频道（**hermes v0.20+ 强制显式 `--to <平台[:频道[:thread]]>`**）：
-  由环境变量 `HERMES_SEND_TARGET` 指定（如 `weixin`、`telegram:12345`、
-  `wecom`、`feishu`、`discord:#ops`）。**未设置时无法推送**——`hermes send`
-  会报 "--to PLATFORM[:channel[:thread]] is required" 并退出码 2，
-  notify 直接返回失败并给出 WARNING（"省略 --to 由 hermes 发往 home
-  channel"是错误认知，hermes 并不支持）；
+- 目标频道（**hermes v0.20+ 强制显式 `--to <平台[:频道[:thread]]>`**，
+  "省略 --to 由 hermes 发往 home channel"是错误认知，hermes 并不支持）：
+  在 `project_config.yaml` 的 `publish_defaults.hermes_send_targets` 配置
+  **列表**（如 `[weixin, telegram:12345, feishu]`，支持多个目标）；
+  **为空（默认）= 推送到所有已发现的 channel**（notify 通过
+  `hermes send --list --json` 枚举，每个平台发 home channel 并附上已发现
+  的频道）；CLI 可用 `--to` 单次覆盖；
 - 推送失败（未设置目标 / hermes 未安装 / gateway 未运行 / 平台限流等）仅
   警告，**不影响发布流程**，agent 仍须在对话中提示用户。限流
   （rate limited，如微信 cooldown 30s）时 notify 会提示退避并自动重试一次。

@@ -18,10 +18,11 @@ example_configs/
                 └── materials.yaml    # 单次发布的物料数据
 ```
 
-人机协作通知推送**不需要配置文件**：通过 hermes agent gateway 的
-`hermes send` CLI 推送到已配置的 messaging channel（**目标必须由环境变量
-`HERMES_SEND_TARGET` 显式指定**，如 `HERMES_SEND_TARGET=weixin`；hermes
-v0.20+ 强制 `--to`），见 references/human-collab.md。
+人机协作通知推送**不需要独立配置文件**：通过 hermes agent gateway 的
+`hermes send` CLI 推送到已配置的 messaging channel，目标在
+`project_config.yaml` 的 `publish_defaults.hermes_send_targets` 配置
+（**支持多个，如 `[weixin, telegram:12345]`；空 = 推送到所有已发现
+channel**；hermes v0.20+ 强制 `--to`），见 references/human-collab.md。
 
 文件中的路径均为示例占位（`{workspace}` = 实际工作区绝对路径）。实际运行时：
 

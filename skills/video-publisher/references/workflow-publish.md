@@ -54,9 +54,10 @@
    过期** → 输出 `@ENV@ {"env_status": "human_collab", ...}` 并**阻塞等待**；
 2. 提交后出现验证码/风控 → `human_wait_*` 同样输出提示并阻塞等待；
 3. 脚本输出提示后，**agent 经 hermes agent 的 channel 推送通知**（用
-   `scripts/tool/notify.py` 把含 VNC 地址的提示消息推送出去；`hermes send`
-   复用 gateway 频道凭据，**目标频道必须由环境变量 `HERMES_SEND_TARGET`
-   显式指定**（hermes v0.20+ 强制 --to），见
+   `scripts/tool/notify.py --project-config <...>` 把含 VNC 地址的提示消息
+   推送出去；`hermes send` 复用 gateway 频道凭据，**目标取项目配置
+   `publish_defaults.hermes_send_targets`**（hermes v0.20+ 强制 --to；
+   空 = 推送到所有已发现 channel），见
    [human-collab.md](human-collab.md)）；
 4. agent 必须把 `@ENV@` 消息**原样转达**用户（说明需通过 VNC 完成什么操作），
    hermes 未安装/gateway 未运行推送失败时更要在对话中明确提示；
