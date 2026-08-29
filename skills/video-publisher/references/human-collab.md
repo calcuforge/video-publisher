@@ -121,16 +121,20 @@ python "${SKILL_DIR}/scripts/tool/notify.py" --message "⚠ 需要用户通过 V
 python "${SKILL_DIR}/scripts/tool/notify.py" --message "..." --to telegram
 ```
 
-- 机制：执行 `hermes send [--to <目标>] --subject video-publisher <消息>`
+- 机制：执行 `hermes send --to <目标> --subject video-publisher <消息>`
   CLI，复用 hermes gateway 已配置的频道凭据（Telegram / Discord / Slack /
   飞书 / 钉钉 / 企业微信 / 微信 等）推送到用户的消息 channel；
 - 前置：hermes-agent 已安装、`hermes gateway start` 运行中（凭据在
   `hermes gateway setup` 时配置，本 skill 不重复配置）；
-- 目标频道：环境变量 `HERMES_SEND_TARGET`（如 `telegram`、`telegram:12345`、
-  `wecom`、`feishu`、`discord:#ops`），未设置时由 hermes 发往默认（home
-  channel）；
-- 推送失败（hermes 未安装/gateway 未运行）仅警告，**不影响发布流程**，
-  agent 仍须在对话中提示用户。
+- 目标频道（**hermes v0.20+ 强制显式 `--to <平台[:频道[:thread]]>`**）：
+  由环境变量 `HERMES_SEND_TARGET` 指定（如 `weixin`、`telegram:12345`、
+  `wecom`、`feishu`、`discord:#ops`）。**未设置时无法推送**——`hermes send`
+  会报 "--to PLATFORM[:channel[:thread]] is required" 并退出码 2，
+  notify 直接返回失败并给出 WARNING（"省略 --to 由 hermes 发往 home
+  channel"是错误认知，hermes 并不支持）；
+- 推送失败（未设置目标 / hermes 未安装 / gateway 未运行 / 平台限流等）仅
+  警告，**不影响发布流程**，agent 仍须在对话中提示用户。限流
+  （rate limited，如微信 cooldown 30s）时 notify 会提示退避并自动重试一次。
 
 **3. 用户处理**。用户按推送消息中的 VNC 地址接入有头浏览器完成操作
 （扫码登录/输入验证码/点击滑块）；脚本每 30 秒输出一次

@@ -215,8 +215,10 @@ references/workflow-publish.md。
   脚本输出 `@ENV@ human_collab` 提示（含 VNC 地址）后，agent 用
   `scripts/tool/notify.py` 把该提示（含 VNC 地址）推送到 **hermes agent 的
   channel**（`hermes send` CLI，复用 gateway 已配置的 Telegram/Discord/飞书/
-  钉钉/企业微信等频道凭据；目标频道由环境变量 `HERMES_SEND_TARGET` 指定）。
-  无需配置文件；hermes 未安装或 gateway 未运行时仅警告、不影响流程，agent
+  钉钉/企业微信等频道凭据；**hermes v0.20+ 强制显式 `--to`，目标频道必须由
+  环境变量 `HERMES_SEND_TARGET` 指定**，如 `HERMES_SEND_TARGET=weixin`）。
+  无需配置文件；目标未设置、hermes 未安装或 gateway 未运行时仅警告、
+  不影响流程，agent
   仍须在对话中转达。详见 human-collab.md。
 - 具体协议、浏览器启动方式、等待条件写法见 references/human-collab.md。
 

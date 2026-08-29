@@ -19,8 +19,9 @@ example_configs/
 ```
 
 人机协作通知推送**不需要配置文件**：通过 hermes agent gateway 的
-`hermes send` CLI 推送到已配置的 messaging channel（目标由环境变量
-`HERMES_SEND_TARGET` 指定），见 references/human-collab.md。
+`hermes send` CLI 推送到已配置的 messaging channel（**目标必须由环境变量
+`HERMES_SEND_TARGET` 显式指定**，如 `HERMES_SEND_TARGET=weixin`；hermes
+v0.20+ 强制 `--to`），见 references/human-collab.md。
 
 文件中的路径均为示例占位（`{workspace}` = 实际工作区绝对路径）。实际运行时：
 
