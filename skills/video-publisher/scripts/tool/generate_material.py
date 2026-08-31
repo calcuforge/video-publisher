@@ -17,8 +17,9 @@
 explainer-video-maker 联动（--video-config）:
 - 识别：视频文件同目录存在 video_config.yaml（产物结构
   projects/{项目}/{视频}/video_config.yaml + result.mp4）
-- 标题：未配置 title_format 时直接用 video_config.topic；
-  配置了模板则可引用 {topic}
+- 标题：未配置 title_format 时直接用 video_config.topic（基线标题）；
+  配置了模板则可引用 {topic}。agent 须按 references/title-guide.md 套用
+  吸引力手法（悬念/数字/承诺/情绪/对比）——裸 topic 不是最终标题
 - 简介：未配置 description_format 时用 summary（按平台 max_length 截断）
 - 封面：cover.prompt 可引用 {topic} {summary} 生成更贴合的封面
 - 项目归类：由 agent 依据 topic 与 explainer 项目名推断分类

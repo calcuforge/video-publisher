@@ -64,8 +64,8 @@ video-publisher/
     ├── templates/                  # platform/project/default config templates
     │   └── example_configs/        # Filled-in config examples (video_publiser_data/{platform}/{project})
     └── references/                 # Agent workflow & protocol docs (Chinese,
-                                    #   incl. cover-prompt-guide.md: text-embedding
-                                    #   template for clickable covers)
+                                    #   incl. cover-prompt-guide.md / title-guide.md:
+                                    #   clickable cover text & title optimization)
 ```
 
 ## Dependencies & Setup

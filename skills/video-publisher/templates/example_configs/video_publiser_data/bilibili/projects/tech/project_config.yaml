@@ -9,7 +9,9 @@ project:
   platforms: [bilibili, douyin] # 本项目可发往的平台列表
 # 发布默认值：优先级高于平台级 default_config
 publish_defaults:
-  title_format: "{video_name} | 科技前沿"
+  # 标题要吸引点击（悬念/数字/承诺/情绪），示例套用"数字+好奇缺口"手法：
+  # {topic} 来自 video_config（explainer-video-maker 联动）
+  title_format: "{topic}：5个你从没听说过的设计细节"
   description_format: "本期视频：{video_name}。欢迎点赞收藏，关注解锁更多科技内容。"
   tags: [科技, 硬核科普]
   partition: 科技

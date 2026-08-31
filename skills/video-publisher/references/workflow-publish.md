@@ -41,6 +41,10 @@
 ## 步骤 4 — 物料数据生成
 
 同首次流程步骤 5（generate_material.py + `--video-config` 联动 + 手动模式审核点）。
+**标题必须套用吸引力手法**（悬念/数字/承诺/情绪/对比，见
+[title-guide.md](title-guide.md)）：`title_format` 引用 `{topic}` 配置
+或编辑 `materials.yaml` 的 title 字段；默认 `{video_name}`/裸 topic 不作为
+最终标题。
 
 ## 步骤 5 — 执行发布脚本
 

@@ -41,8 +41,11 @@ python "${SKILL_DIR}/scripts/tool/generate_material.py" \
 
 自动生效的行为：
 
-- **标题**：未配置 `title_format` 时直接用 `topic` 作为标题；配置了模板
-  则模板可引用 `{topic}`（如 `"{topic} | 科技前沿"`）；
+- **标题**：未配置 `title_format` 时直接用 `topic` 作为**基线标题**；配置了
+  模板则模板可引用 `{topic}`。**无论哪种方式，agent 都必须按
+  [title-guide.md](title-guide.md) 套用吸引力手法**（悬念/数字/承诺/情绪/
+  对比），如 `"{topic}：5个你从没听说过的设计细节"`——裸 topic 只是基线，
+  不是最终标题；
 - **简介**：未配置 `description_format` 时用 `summary`（按平台字段
   `max_length` 截断）；配置了模板可引用 `{summary}`；
 - **封面**：`cover.prompt` 可引用 `{topic}` / `{summary}` 生成与内容贴合的

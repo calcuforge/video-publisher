@@ -111,6 +111,10 @@ python "${SKILL_DIR}/scripts/tool/generate_material.py" \
   说明排版位置，文字用 2-12 字短关键词（从 `{topic}`/`{title}` 提炼）；
   中文平台文字用中文。规范与示例见
   [cover-prompt-guide.md](cover-prompt-guide.md)。
+- **标题也要吸引点击**：模板默认值 `{video_name}`/裸 topic 不是最终标题——
+  agent 把吸引力手法（悬念/数字/承诺/情绪/对比）套进 `title_format`
+  （引用 `{topic}`）或直接编辑 `materials.yaml` 的 title 字段；manual 模式
+  审核点展示优化标题与备选。规范见 [title-guide.md](title-guide.md)。
 - 产物在 `{project}/materials/{date}_{video_name}/`。
 - **手动模式确认点 #2**：manual 模式下，agent 展示物料数据（标题/封面/标签/
   分区）等待用户审核，修改 `materials.yaml` 后继续。

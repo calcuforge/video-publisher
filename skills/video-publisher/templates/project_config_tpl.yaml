@@ -11,7 +11,12 @@ project:
   platforms: [] # agent fills: 该项目发往的平台标识列表，如 [bilibili, douyin]
 # 发布默认值：优先级高于平台级 default_config，是自动模式的实际取值来源
 publish_defaults:
-  title_format: "{video_name}" # 标题模板，支持 {video_name} {date} {project}
+  # 标题模板，支持 {topic} {video_name} {date} {project} 占位符。
+  # **标题要吸引点击**：模板默认值 {video_name} 不是最终标题，agent 必须按
+  # references/title-guide.md 套用吸引力手法（悬念/数字/承诺/情绪/对比），
+  # 如 "{topic}：5个你从没听说过的细节"；也可在物料生成后直接编辑
+  # materials.yaml 的 title 字段
+  title_format: "{video_name}"
   description_format: "" # 简介模板
   tags: []
   partition: "" # 默认投稿分区（需在平台 material_structure 的候选值内）
