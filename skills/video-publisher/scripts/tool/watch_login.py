@@ -5,14 +5,18 @@
 推送"用户已处理"通知并退出码 0，**唤醒 agent 继续后面的发布流程**；
 超时（默认 2 小时）退出码 1。
 
-监控条件优先级：
-1. --wait-url-contains / --wait-selector（验证码等处理完成的**具体特征**，
-   与发布脚本 human_wait 用的同一条件，任一命中即视为已处理）；
-2. 未指定时用 platform_config 的 login_indicator（登录后 URL 特征/已登录
-   元素特征）。
+**完成判断逻辑由 agent 实现**（不同平台页面特征不同，脚本不内置固定规则）：
+- 推荐：agent 依据该平台实际页面编写 `{platform}_watch_check.py`（模板见
+  scripts/publish_scripts/template_watch_check.py），实现
+  `check(page) -> str | bool`（返回真值/命中描述 = 已处理完成），
+  用 `--check-script` 传入；判断模块放平台级
+  `{platform}/publish_scripts/`，同平台所有项目复用；
+- 未提供 --check-script 时回退内置简单条件（--wait-url-contains /
+  --wait-selector / platform_config 的 login_indicator）作兜底。
 
 用法:
     python watch_login.py --platform-config /abs/.../platform_config.yaml \
+                          --check-script /abs/.../{platform}_watch_check.py \
                           [--project-config /abs/.../project_config.yaml] \
                           [--cdp-url http://127.0.0.1:9222] \
                           [--wait-url-contains <URL特征>] [--wait-selector <选择器>] \
@@ -25,13 +29,14 @@
 - 超时 → @ENV@ watch_timeout → 退出码 1（agent 需重新提醒用户或人工介入）；
 - 每 60s 输出 @ENV@ watch_waiting 心跳。
 
-注意：本脚本只读监控（轮询 URL/元素存在性），不操作页面，与发布脚本共用
+注意：本脚本只读监控（轮询页面状态），不操作页面，与发布脚本共用
 同一有头浏览器（CDP）互不干扰。
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sys
 import time
@@ -49,8 +54,40 @@ ensure_utf8_stdio()
 DEFAULT_TIMEOUT = 7200  # 2 小时
 
 
-def condition_met(page, args, platform_config: dict) -> str:
-    """返回命中的条件描述；未命中返回 ""。"""
+def load_check_fn(script_path: str):
+    """加载 agent 编写的完成判断模块（{platform}_watch_check.py）。
+
+    约定：模块内必须有 `check(page) -> str | bool` 函数——返回真值或命中
+    描述表示用户已处理完成；返回 False/None 表示继续等待。加载失败抛出
+    RuntimeError（带明确提示）。
+    """
+    require_abs(script_path)
+    spec = importlib.util.spec_from_file_location("platform_watch_check", script_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"无法加载判断模块: {script_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    if not hasattr(module, "check"):
+        raise RuntimeError(f"判断模块 {script_path} 缺少 check(page) 函数"
+                           f"（模板见 scripts/publish_scripts/template_watch_check.py）")
+    return module.check
+
+
+def condition_met(page, args, platform_config: dict, check_fn=None) -> str:
+    """返回命中的条件描述；未命中返回 ""。
+
+    优先级：agent 自定义 check_fn（--check-script，平台特征由 agent 实现）
+    > 内置简单条件（--wait-url-contains / --wait-selector / login_indicator）。
+    """
+    if check_fn is not None:
+        try:
+            result = check_fn(page)
+        except Exception as exc:
+            env_out("watch_check_error", f"完成判断函数异常（继续等待）: {exc}")
+            return ""
+        if result:
+            return result if isinstance(result, str) else "自定义判断命中"
+        return ""
     if args.wait_url_contains and args.wait_url_contains in (page.url or ""):
         return f"URL 包含 {args.wait_url_contains}"
     if args.wait_selector:
@@ -67,17 +104,30 @@ def condition_met(page, args, platform_config: dict) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Watch the publish page until the user handles login/captcha")
-    parser.add_argument("--platform-config", required=True, help="平台配置绝对路径（login_indicator）")
+    parser.add_argument("--platform-config", required=True, help="平台配置绝对路径（login_indicator，兜底用）")
     parser.add_argument("--project-config", default="", help="项目配置绝对路径（推送目标 hermes_send_targets，可选）")
     parser.add_argument("--cdp-url", default="", help="CDP 调试地址（默认按 lib/env 约定解析）")
-    parser.add_argument("--wait-url-contains", default="", help="用户处理完成的 URL 特征（可选）")
-    parser.add_argument("--wait-selector", default="", help="用户处理完成的元素选择器（可选）")
+    parser.add_argument("--check-script", default="",
+                        help="agent 编写的完成判断模块（{platform}_watch_check.py，含 check(page) 函数；"
+                             "不同平台页面特征不同，由 agent 按实际页面实现；模板见 template_watch_check.py）")
+    parser.add_argument("--wait-url-contains", default="", help="用户处理完成的 URL 特征（无 --check-script 时兜底）")
+    parser.add_argument("--wait-selector", default="", help="用户处理完成的元素选择器（无 --check-script 时兜底）")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help=f"最大等待秒数（默认 {DEFAULT_TIMEOUT}s = 2 小时）")
     parser.add_argument("--poll", type=int, default=3, help="轮询间隔秒数（默认 3）")
     args = parser.parse_args()
 
     require_abs(args.platform_config)
     platform_config = load_yaml(args.platform_config)
+
+    check_fn = None
+    if args.check_script:
+        try:
+            check_fn = load_check_fn(args.check_script)
+            env_out("watch_check", f"已加载 agent 自定义完成判断: {args.check_script}")
+        except RuntimeError as exc:
+            print(json.dumps({"status": "error", "msg": str(exc), "data": {}},
+                             ensure_ascii=False, indent=2))
+            sys.exit(1)
 
     targets = []
     if args.project_config:
@@ -93,7 +143,7 @@ def main() -> None:
         deadline = time.monotonic() + args.timeout
         last_heartbeat = time.monotonic()
         while time.monotonic() < deadline:
-            hit = condition_met(page, args, platform_config)
+            hit = condition_met(page, args, platform_config, check_fn=check_fn)
             if hit:
                 env_out("watch_done", f"用户已完成处理（{hit}），唤醒 agent 继续发布流程", page_url=page.url, hit=hit)
                 from lib.notify import notify_human_collab

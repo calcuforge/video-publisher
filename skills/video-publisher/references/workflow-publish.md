@@ -61,9 +61,10 @@
    [human-collab.md](human-collab.md)）；
 4. agent 必须把 `@ENV@` 消息**原样转达**用户（说明需通过 VNC 完成什么操作），
    hermes 未安装/gateway 未运行推送失败时更要在对话中明确提示；
-5. **agent 同时后台启动监控**：`scripts/tool/watch_login.py`（条件同发布脚本
-   的等待特征，默认 2h 超时）——用户处理完成后输出 `@ENV@ watch_done` 并
-   推送"已处理"通知，**唤醒 agent 继续**；超时输出 `watch_timeout`；
+5. **agent 同时后台启动监控**：`scripts/tool/watch_login.py`（**完成判断由
+   agent 编写 `{platform}_watch_check.py` 经 `--check-script` 提供**——平台
+   页面特征各异；默认 2h 超时）——用户处理完成后输出 `@ENV@ watch_done`
+   并推送"已处理"通知，**唤醒 agent 继续**；超时输出 `watch_timeout`；
 6. 用户处理完成后脚本检测到条件满足（`human_collab_done`）自动继续；登录
    成功会自动重新保存 storageState，后续发布再次复用。
 

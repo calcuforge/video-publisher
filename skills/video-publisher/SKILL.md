@@ -212,10 +212,12 @@ references/workflow-publish.md。
 
   直到出现 `human_collab_done` 或失败才继续/重试。
 - **监控唤醒（watch_login.py）**：推送 channel 提醒后，agent **同时**后台
-  启动 `scripts/tool/watch_login.py` 监控页面（条件同 human_wait 的特征，
-  默认 2 小时超时）。检测到用户已处理 → `@ENV@ watch_done` + 推送"已处理"
-  通知 → 退出码 0 唤醒 agent 继续后面的流程；超时 → `watch_timeout`，
-  agent 重新提醒用户。详见 human-collab.md。
+  启动 `scripts/tool/watch_login.py` 监控页面（默认 2 小时超时）。**完成判断
+  逻辑由 agent 实现**：编写 `{platform}_watch_check.py`（`check(page)` 函数，
+  模板见 template_watch_check.py）用 `--check-script` 传入——不同平台页面
+  特征不同，脚本不内置固定规则；未提供时回退内置简单条件。检测到用户已
+  处理 → `@ENV@ watch_done` + 推送"已处理"通知 → 退出码 0 唤醒 agent 继续
+  后面的流程；超时 → `watch_timeout`，agent 重新提醒用户。详见 human-collab.md。
 - **agent channel 推送（hermes agent gateway）**：推送动作由 **agent 执行**——
   脚本输出 `@ENV@ human_collab` 提示（含 VNC 地址）后，agent 用
   `scripts/tool/notify.py` 把该提示（含 VNC 地址）推送到 **hermes agent 的

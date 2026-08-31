@@ -140,25 +140,31 @@ python "${SKILL_DIR}/scripts/tool/notify.py" --message "..." --to telegram
 
 **3. agent 启动监控脚本（唤醒机制）**。推送提醒后，agent **同时**用后台
 方式启动 `watch_login.py` 监控页面，检测用户是否已处理，完成后自动唤醒
-agent 继续后面的流程：
+agent 继续后面的流程。
+
+**完成判断逻辑由 agent 实现**：不同平台页面特征不同，watch_login.py 不内置
+固定规则——agent 依据该平台实际页面编写 `{platform}_watch_check.py`
+（模板 `scripts/publish_scripts/template_watch_check.py`，实现
+`check(page) -> str | bool`，可判断 URL/元素/iframe 内容等任意只读特征），
+放平台级 `{platform}/publish_scripts/` 复用，监控时用 `--check-script` 传入：
 
 ```bash
 python "${SKILL_DIR}/scripts/tool/watch_login.py" \
     --platform-config <...>/platform_config.yaml \
     --project-config <...>/project_config.yaml \
-    [--wait-url-contains <用户处理完成后的URL特征>] \
-    [--wait-selector <用户处理完成后的元素特征>] \
+    --check-script <...>/publish_scripts/{platform}_watch_check.py \
     [--timeout 7200]   # 最大等待 2 小时（默认）
 ```
 
-- 监控条件：`--wait-url-contains` / `--wait-selector`（验证码等处理完成的
-  **具体特征**，与发布脚本 human_wait 用同一条件）优先；未指定时用
-  platform_config 的 `login_indicator`（登录完成特征）；
+- 判断函数每 3s 调用一次，返回真值/命中描述 = 用户已处理；异常被捕获
+  输出 `watch_check_error` 并继续等待；
+- 未提供 `--check-script` 时回退内置简单条件（`--wait-url-contains` /
+  `--wait-selector` / platform_config 的 `login_indicator`）作兜底；
 - 检测到用户已处理 → 输出 `@ENV@ watch_done` 并经 hermes channel 推送
   "用户已处理，发布流程继续"通知 → 退出码 0，**唤醒 agent 继续**；
 - 超时（默认 2h）→ `@ENV@ watch_timeout` → 退出码 1，agent 需重新提醒
   用户或人工介入；
-- 只读监控（轮询 URL/元素存在性），与发布脚本共用同一有头浏览器互不干扰；
+- 只读监控（轮询页面状态），与发布脚本共用同一有头浏览器互不干扰；
 - agent 被唤醒后：若发布脚本仍在阻塞等待（`human_collab_done` 出现）则
   由脚本自行继续；若发布脚本已退出，则重新执行发布步骤继续流程。
 
