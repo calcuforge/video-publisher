@@ -46,7 +46,13 @@ python "${SKILL_DIR}/scripts/tool/generate_material.py" \
 - **简介**：未配置 `description_format` 时用 `summary`（按平台字段
   `max_length` 截断）；配置了模板可引用 `{summary}`；
 - **封面**：`cover.prompt` 可引用 `{topic}` / `{summary}` 生成与内容贴合的
-  封面（如 `"主题：{topic}，纪录片风格封面"`）；
+  封面（如 `"主题：{topic}，纪录片风格封面"`）。**从 `{topic}` 提炼 2-12 字
+  短关键词作为封面文字**（按文字嵌入专用模板用 displaying 嵌入，见
+  [cover-prompt-guide.md](cover-prompt-guide.md)）——topic 是封面文字的最佳
+  来源，示例：
+  ```yaml
+  prompt: "纪录片风格封面，画面中央旧报纸 engraved with 'AI 70年'，衬线字体，做旧质感"
+  ```
 - 输出 envelope 会提示已读取的 topic，agent 可据此确认归类与标题合理。
 
 ## 示例

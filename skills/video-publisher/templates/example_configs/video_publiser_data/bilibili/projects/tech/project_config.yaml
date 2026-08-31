@@ -26,7 +26,8 @@ cover:
   comfyui_workflow: z_image_fp16
   # {title} {video_name} {date} {project} 恒可用；{topic} {summary}
   # 在提供 --video-config（explainer-video-maker 联动）时可用
-  prompt: "科技感封面图，主题：{topic}，深蓝背景配电路纹理，金属质感标题区，专业高清"
+  # 按「文字嵌入专用模板」编写：封面带主题短文字（displaying + 字体 + 位置）
+  prompt: "科技感视频封面，画面中央发光LED屏幕 displaying '{topic}'，无衬线字体（sans-serif），深蓝渐变背景配电路纹理，金属质感，专业高清，文字清晰可读"
   width: 1600
   height: 1000
   seed: 0

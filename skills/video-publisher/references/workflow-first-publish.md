@@ -106,6 +106,11 @@ python "${SKILL_DIR}/scripts/tool/generate_material.py" \
 - ffprobe 探测视频元数据；按 `cover` 配置通过 **comfyui-scheduler 文生图**
   生成封面（提示词支持 `{title}` 占位符，按标题模板解析后注入）；组装
   `materials.yaml`（标题/简介/标签/分区/封面/视频路径）。
+- **封面必须带主题文字（吸引点击）**：`cover.prompt` 按「文字嵌入专用模板」
+  编写——用 displaying/written on 等动词明确文字载体、指定字体（sans-serif）、
+  说明排版位置，文字用 2-12 字短关键词（从 `{topic}`/`{title}` 提炼）；
+  中文平台文字用中文。规范与示例见
+  [cover-prompt-guide.md](cover-prompt-guide.md)。
 - 产物在 `{project}/materials/{date}_{video_name}/`。
 - **手动模式确认点 #2**：manual 模式下，agent 展示物料数据（标题/封面/标签/
   分区）等待用户审核，修改 `materials.yaml` 后继续。

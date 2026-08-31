@@ -94,7 +94,9 @@ cover_spec:
   note: 小红书封面竖版 3:4，注意底部留白
 ```
 
-agent 生成封面（generate_material.py）时以此为准写入项目 `cover` 配置。
+agent 生成封面（generate_material.py）时以此为准写入项目 `cover` 配置，
+并在 `note` 中说明**文字排版位置与安全区**（封面文字放哪不会被平台角标/
+进度条遮挡，见 [cover-prompt-guide.md](cover-prompt-guide.md) 的平台对照表）。
 
 ## 平台列表维护
 

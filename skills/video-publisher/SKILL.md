@@ -258,6 +258,7 @@ references/workflow-publish.md。
 - [workflow-first-publish.md](references/workflow-first-publish.md) — 首次发布流程（含首次发布执行详解）
 - [publish-framework.md](references/publish-framework.md) — 发布脚本框架扩展指南（hooks + 平台类型模式）
 - [explainer-video-maker-integration.md](references/explainer-video-maker-integration.md) — 联动 explainer-video-maker（识别/归类/物料生成）
+- [cover-prompt-guide.md](references/cover-prompt-guide.md) — 封面提示词指南（文字嵌入专用模板 + 平台文字安全区）
 - [workflow-publish.md](references/workflow-publish.md) — 非首次发布流程
 - [human-collab.md](references/human-collab.md) — VNC + CDP 人机协作协议
 - [self-healing.md](references/self-healing.md) — 自愈机制

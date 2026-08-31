@@ -29,7 +29,10 @@ cover:
   comfyui_workflow: "" # 如 z_image_fp16，需为 comfyui-scheduler 已导入的实际 workflow（按本机工作流库调整）
   # prompt 占位符：{title} {video_name} {date} {project} 恒可用（{title} 按标题
   # 模板解析后注入）；{topic} {summary} 在提供 --video-config（explainer-video-maker
-  # 联动）时可用
+  # 联动）时可用。
+  # 封面必须带上与主题相关、吸引点击的文字（2-12 字短关键词，如 {topic} 提炼），
+  # 提示词按「文字嵌入专用模板」编写：明确文字内容/载体动词(displaying/written on)/
+  # 字体类型(sans-serif)/排版位置。详见 references/cover-prompt-guide.md
   prompt: ""
   width: 1920
   height: 1080

@@ -63,7 +63,9 @@ video-publisher/
     │   └── verify/                 # Config validation scripts
     ├── templates/                  # platform/project/default config templates
     │   └── example_configs/        # Filled-in config examples (video_publiser_data/{platform}/{project})
-    └── references/                 # Agent workflow & protocol docs (Chinese)
+    └── references/                 # Agent workflow & protocol docs (Chinese,
+                                    #   incl. cover-prompt-guide.md: text-embedding
+                                    #   template for clickable covers)
 ```
 
 ## Dependencies & Setup
