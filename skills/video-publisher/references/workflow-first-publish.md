@@ -151,7 +151,9 @@ python "${SKILL_DIR}/scripts/tool/publish_video.py" \
 
 - 发布过程输出 `@ENV@` 进度行；遇到登录/验证码/风控时脚本输出含 VNC 地址
   的提示并阻塞等待，**agent 用 `scripts/tool/notify.py` 把提示推送到 hermes
-  agent 的 channel 并实时转达用户**，直到 `human_collab_done` 或失败。
+  agent 的 channel 并实时转达用户**，同时**后台启动
+  `scripts/tool/watch_login.py` 监控页面**（2h 超时，用户处理完成后
+  `@ENV@ watch_done` 唤醒 agent 继续），直到 `human_collab_done` 或失败。
 - **手动模式确认点 #3**：manual 模式下脚本在提交前暂停并截图，agent 将
   截图与内容摘要展示给用户，确认后才继续发布。
 

@@ -97,11 +97,12 @@ Windows 本地调试也可手动启动（推荐固定 `--user-data-dir`，profil
 
 ## agent 的职责：转达提示 + channel 推送（不代替脚本）
 
-**推送流程（三步）**：
+**推送流程（四步）**：
 
 ```
 脚本检测到需要登录/验证码 → 脚本输出 @ENV@ human_collab 提示（含 VNC 地址）
-→ agent 通过 hermes agent 的 channel 推送该提示消息（含 VNC 地址）给用户
+→ agent 推送 channel 消息（含 VNC 地址）→ agent 启动 watch_login.py 后台
+监控页面（2h 超时）→ 检测到用户已处理 → 推送"已处理"通知并唤醒 agent 继续
 ```
 
 **1. 脚本输出提示**。发布脚本遇到无法自动化的步骤（登录态过期、验证码、
@@ -137,14 +138,39 @@ python "${SKILL_DIR}/scripts/tool/notify.py" --message "..." --to telegram
   警告，**不影响发布流程**，agent 仍须在对话中提示用户。限流
   （rate limited，如微信 cooldown 30s）时 notify 会提示退避并自动重试一次。
 
-**3. 用户处理**。用户按推送消息中的 VNC 地址接入有头浏览器完成操作
-（扫码登录/输入验证码/点击滑块）；脚本每 30 秒输出一次
-`human_collab_waiting` 心跳，完成时输出 `human_collab_done`。
+**3. agent 启动监控脚本（唤醒机制）**。推送提醒后，agent **同时**用后台
+方式启动 `watch_login.py` 监控页面，检测用户是否已处理，完成后自动唤醒
+agent 继续后面的流程：
+
+```bash
+python "${SKILL_DIR}/scripts/tool/watch_login.py" \
+    --platform-config <...>/platform_config.yaml \
+    --project-config <...>/project_config.yaml \
+    [--wait-url-contains <用户处理完成后的URL特征>] \
+    [--wait-selector <用户处理完成后的元素特征>] \
+    [--timeout 7200]   # 最大等待 2 小时（默认）
+```
+
+- 监控条件：`--wait-url-contains` / `--wait-selector`（验证码等处理完成的
+  **具体特征**，与发布脚本 human_wait 用同一条件）优先；未指定时用
+  platform_config 的 `login_indicator`（登录完成特征）；
+- 检测到用户已处理 → 输出 `@ENV@ watch_done` 并经 hermes channel 推送
+  "用户已处理，发布流程继续"通知 → 退出码 0，**唤醒 agent 继续**；
+- 超时（默认 2h）→ `@ENV@ watch_timeout` → 退出码 1，agent 需重新提醒
+  用户或人工介入；
+- 只读监控（轮询 URL/元素存在性），与发布脚本共用同一有头浏览器互不干扰；
+- agent 被唤醒后：若发布脚本仍在阻塞等待（`human_collab_done` 出现）则
+  由脚本自行继续；若发布脚本已退出，则重新执行发布步骤继续流程。
+
+**4. 用户处理**。用户按推送消息中的 VNC 地址接入有头浏览器完成操作
+（扫码登录/输入验证码/点击滑块）；发布脚本每 30 秒输出一次
+`human_collab_waiting` 心跳，完成时输出 `human_collab_done`；watch 脚本
+同时检测到条件满足后唤醒 agent。
 
 **agent 禁止**：
 - 替用户处理验证码（自动打码/绕过）——所有验证一律走人工；
-- 在未收到 `human_collab_done` 或成功 envelope 前宣布发布成功；
-- 阻塞等待期间做无关操作导致错过用户反馈。
+- 在未收到 `human_collab_done` / `watch_done` 或成功 envelope 前宣布发布成功；
+- 等待期间做无关操作导致错过用户反馈。
 
 ## 常见人机协作场景与条件
 

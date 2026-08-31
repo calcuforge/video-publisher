@@ -56,7 +56,8 @@ video-publisher/
     │   │   ├── probe_page.py       # Publish-page DOM probe via CDP (human-collab)
     │   │   ├── generate_material.py# ffprobe metadata + comfyui-scheduler cover + materials.yaml
     │   │   ├── publish_video.py    # Publish entry (runs the platform publish script)
-    │   │   └── notify.py           # Push human-collab notifications via hermes agent channel
+    │   │   ├── notify.py           # Push human-collab notifications via hermes agent channel
+    │   │   └── watch_login.py      # Watch page until user handles login/captcha (wakes agent)
     │   ├── publish_scripts/
     │   │   └── template_publish.py # Agent-filled template for per-platform scripts
     │   └── verify/                 # Config validation scripts
