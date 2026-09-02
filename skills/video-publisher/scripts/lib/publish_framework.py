@@ -270,11 +270,12 @@ class PlatformPublisher:
         """提交前的平台特有步骤（勾选原创声明、二次确认弹窗等），子类按需覆写。"""
 
     def wait_result(self) -> bool:
-        """等待发布结果。返回是否已确认发布成功（供 run() 输出 confirm_required）。
+        """等待发布结果。返回是否已自动确认发布成功（供 run() 输出 confirm_required）。
 
-        未配置成功特征时返回 False 并醒目提示 —— 脚本无法确认提交是否成功，
-        agent 必须人工确认页面状态后再决定是否重试，防止"误判失败重跑 →
-        重复发布两条"。
+        未配置成功特征时返回 False 并提示 —— 脚本无法自动确认提交结果，但
+        重试是**安全**的：run() 的幂等保护（check_already_submitted）会在重跑
+        时自动检测页面是否已成功，已成功则直接跳过，不会重复发布。无需人工
+        确认页面状态，agent 可直接决定重试。
         """
         if self.SUBMIT_OK_URL_CONTAINS:
             human_wait_url(self.page, "已提交，等待发布结果（若出现验证码/风控校验，请通过 VNC 处理）",
@@ -286,9 +287,9 @@ class PlatformPublisher:
             return True
         self.screenshot("post_submit.png")
         self.env("confirm_required",
-                 "已执行提交，但未配置 SUBMIT_OK_* 成功特征，脚本无法确认是否发布成功。"
-                 "agent 必须先通过截图/VNC 人工确认页面状态：若已成功，直接汇报；"
-                 "若确实失败再重试（重试有幂等保护，页面已成功时会自动跳过）")
+                 "已执行提交，但未配置 SUBMIT_OK_* 成功特征，脚本无法自动确认是否发布成功。"
+                 "无需人工确认：重试是安全的（run() 幂等保护会在重跑时检测页面是否已成功，"
+                 "已成功则自动跳过，不会重复发布）")
         return False
 
     # ============ 通用字段填写实现（子类可复用/覆写）============
