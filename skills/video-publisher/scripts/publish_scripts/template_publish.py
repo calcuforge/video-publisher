@@ -80,10 +80,11 @@ class TemplatePublisher(PlatformPublisher):
     #     if self.field("original_declaration"):
     #         click_by_text(self.page, "未经作者授权，禁止转载")
 
-    # 场景 4：先点"上传视频"按钮才出现文件输入框 —— 覆写 upload_video
-    # def upload_video(self):
-    #     click_by_text(self.page, "点击上传")
-    #     super().upload_video()
+    # 场景 4：视频先行型（如 B站：先上传视频、转码完成标题表单才出现）——
+    # 无需覆写方法，配置 UPLOAD_FIRST 即可（框架自动调整时序：
+    # wait_login → upload_video（等上传入口）→ wait_form_ready）
+    # UPLOAD_FIRST = True
+    # UPLOAD_ENTRY_SELECTOR = "text=点击上传"  # 上传入口出现的选择器（按探测填写）
 
 
 if __name__ == "__main__":

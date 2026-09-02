@@ -53,6 +53,16 @@ class PlatformPublisher:
     SUBMIT_SELECTOR = ""        # 发布按钮；空 = 按"发布"文本点击
     SUBMIT_OK_URL_CONTAINS = "" # 发布成功 URL 特征（wait_result 用）
     SUBMIT_OK_SELECTOR = ""     # 发布成功元素特征（与 URL 特征二选一）
+    # 上传时序模式（平台差异通用化）：
+    #   False（默认）= 表单先行型：先 wait_form_ready 再上传视频，
+    #     多数平台上传按钮/表单随页面一起加载；
+    #   True（视频先行型，如 B站）= 先上传视频、转码完成表单才出现：
+    #     流程变为 wait_login → upload_video（先等 UPLOAD_ENTRY_SELECTOR
+    #     上传入口出现）→ wait_form_ready（转码完成、标题表单出现）。
+    UPLOAD_FIRST = False
+    # 上传入口出现的选择器（视频先行模式等待它；如 B站"点击上传"按钮或
+    # 拖拽区）。留空则直接尝试 file input 上传。
+    UPLOAD_ENTRY_SELECTOR = ""
     LOGIN_TIMEOUT = 600
     FORM_READY_TIMEOUT = 600
     UPLOAD_TIMEOUT = 1800
@@ -95,8 +105,15 @@ class PlatformPublisher:
             self.env("step", f"已打开发布页: {self.page.url}")
 
             self.wait_login()
-            self.wait_form_ready()
-            self.upload_video()
+            if self.UPLOAD_FIRST:
+                # 视频先行型（如 B站）：先上传视频（等上传入口出现），
+                # 转码完成后标题表单才出现
+                self.upload_video()
+                self.wait_form_ready()
+            else:
+                # 表单先行型（多数平台）：表单随页面加载，先等表单再上传
+                self.wait_form_ready()
+                self.upload_video()
             self.fill_form()
             self.upload_cover()
             if self.mode == "manual" and self.MANUAL_CHECKPOINT:
@@ -143,7 +160,14 @@ class PlatformPublisher:
                                 timeout=self.FORM_READY_TIMEOUT)
 
     def upload_video(self):
-        """上传视频文件。子类可覆写：先点上传按钮、处理多帧页面等。"""
+        """上传视频文件。
+
+        UPLOAD_FIRST（视频先行型，如 B站）时先等待 UPLOAD_ENTRY_SELECTOR
+        上传入口出现；表单先行型直接尝试 file input 上传。
+        """
+        if self.UPLOAD_FIRST and self.UPLOAD_ENTRY_SELECTOR:
+            human_wait_selector(self.page, "等待视频上传入口出现",
+                                self.UPLOAD_ENTRY_SELECTOR, timeout=self.FORM_READY_TIMEOUT)
         video = self.field("video") or self.material.get("video_file", "")
         if not video or not Path(video).exists():
             raise RuntimeError(f"物料中缺少视频文件: {video}")
@@ -152,7 +176,8 @@ class PlatformPublisher:
         self.after_upload_video()
 
     def after_upload_video(self):
-        """等待上传/转码完成：多数平台表单可用即视为就绪。"""
+        """等待上传/转码完成：多数平台表单可用即视为就绪
+        （视频先行型：转码完成标题表单出现即命中）。"""
         human_wait_selector(
             self.page, "视频正在上传/转码，请通过 VNC 观察进度（大文件可能较慢）",
             self.FORM_READY_SELECTOR or "input, textarea",

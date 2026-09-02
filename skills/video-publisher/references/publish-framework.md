@@ -19,18 +19,37 @@
 
 ## 发布生命周期与 hooks
 
+**默认时序（表单先行型，多数平台）**：
+
 ```
 open_publish_page → wait_login → wait_form_ready → upload_video →
 fill_form(逐字段 → fill_field) → upload_cover → [manual_checkpoint]
 → submit(before_submit) → wait_result
 ```
 
-| Hook | 默认实现 | 何时覆写 |
+**视频先行型（如 B站：先上传视频、转码完成后标题表单才出现）**——配置
+两个类属性即可，无需覆写任何方法（框架自动调整时序）：
+
+```python
+class BilibiliPublisher(PlatformPublisher):
+    UPLOAD_FIRST = True                    # 视频先行模式
+    UPLOAD_ENTRY_SELECTOR = "text=点击上传" # 上传入口出现的选择器（按探测填写）
+    FORM_READY_SELECTOR = "input[placeholder*='标题']"  # 转码完成后表单出现
+```
+
+```
+open_publish_page → wait_login → upload_video（先等 UPLOAD_ENTRY_SELECTOR
+上传入口）→ wait_form_ready（转码完成、标题表单出现）→ fill_form → ...
+```
+
+| Hook/属性 | 默认实现 | 何时覆写 |
 |------|---------|---------|
+| `UPLOAD_FIRST` | `False`（表单先行） | **B站等先传视频后出表单的平台设 True**，框架自动调整 wait_form_ready/upload_video 顺序 |
+| `UPLOAD_ENTRY_SELECTOR` | 空 | 视频先行模式下等待上传入口出现的选择器（如"点击上传"按钮/拖拽区）；留空直接尝试 file input |
 | `open_publish_page` | 新开标签页打开发布页 | 页面含多 frame、需先跳登录再回跳 |
 | `wait_login` | `ensure_login`：storageState 优先，缺失/过期 → VNC 登录并保存 | 登录后还有短信/滑块二次校验 |
-| `wait_form_ready` | 等待 `FORM_READY_SELECTOR` 出现 | 表单异步渲染、需点击"开始创作"才出现 |
-| `upload_video` | 找到 file input 直接 set 文件，随后 `after_upload_video` 等待转码 | 需先点上传按钮、走系统文件选择（改人工） |
+| `wait_form_ready` | 等待 `FORM_READY_SELECTOR` 出现 | 表单异步渲染、需点击"开始创作"才出现；视频先行模式下它等的是转码完成后的表单 |
+| `upload_video` | 找 file input set 文件（视频先行模式先等上传入口），随后 `after_upload_video` 等待转码 | 走系统文件选择（改人工）等特殊交互 |
 | `after_upload_video` | 等待表单可用（超时 UPLOAD_TIMEOUT） | 平台有显式"转码完成"状态可精确等待 |
 | `fill_form` | 遍历物料字段按 kind 分发 | 表单顺序/组合特殊（先选分区才解锁标题等） |
 | `fill_field` | 按 kind 分发：text/textarea→选择器或 label；tags→输入+回车；select→下拉；checkbox→label 点击 | **树形分区、富文本、extra 字段** |
@@ -100,14 +119,22 @@ def wait_login(self):
                         "text=校验通过", timeout=self.LOGIN_TIMEOUT)
 ```
 
-### D. 上传交互特殊型
-先点"上传视频"按钮再出现文件输入，或上传完成后需点"继续"：
+### D. 视频先行型（B站等：先传视频、转码完成才出表单）
+**首选：配置 `UPLOAD_FIRST = True` + `UPLOAD_ENTRY_SELECTOR`**，框架自动
+调整时序（先等上传入口 → 上传 → 等表单出现），无需覆写方法（见上文
+"视频先行型"示例）。
+
+仅当上传入口需要额外点击交互（如先点按钮再出现 file input）时再覆写：
 
 ```python
 def upload_video(self):
-    click_by_text(self.page, "点击上传")
-    super().upload_video()          # 框架的 file input 上传 + 等待
+    click_by_text(self.page, "点击上传")   # 特殊入口交互
+    super().upload_video()                # 框架的 file input 上传 + 等待
 ```
+
+上传完成后需点"继续"的平台可覆写 `after_upload_video` 追加。注意：**若平台
+属于先传视频后出表单，请优先用 UPLOAD_FIRST，不要通过覆写方法改变顺序**——
+时序是平台级属性，配置表达比方法覆写更清晰、更可复用。
 
 ### E. 提交前确认型
 需勾选协议/原创声明或确认弹窗：
