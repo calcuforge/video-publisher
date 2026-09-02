@@ -15,6 +15,8 @@
 | 失败特征 | 根因 | 处理 |
 |---------|------|------|
 | 连接 CDP 失败 | 有头浏览器未启动/端口错误 | 按 human-collab.md 启动浏览器，重试 |
+| 重复发布两条视频 | 失败重跑无幂等保护：上次实际已提交成功但脚本中断/未确认，重跑再次上传并提交 | 框架已内置保护：run() 打开发布页后先 `check_already_submitted()`（SUBMIT_OK_* 特征命中即跳过）；输出 `confirm_required` 时 agent **必须先人工确认页面状态再决定重试**，不得盲目重跑 |
+| 发布成功但无封面 | ① cover 字段为空（comfyui workflow 未配置/生成失败，generate_material 仅警告）；② upload_file 回退选中了隐藏的视频 file input | ① 脚本输出 `cover_missing` 提示，agent 补 workflow 配置或让用户提供封面后重试；② upload_file 已改为只选可见 file input；B站等需先点"上传封面"按钮的页面应配置 COVER_UPLOAD_SELECTOR |
 | 找不到控件/选择器 | 页面改版或探测不完整 | 重新 probe → 更新选择器/物料结构 |
 | 登录后未跳转 | 登录失败或验证码 | VNC 人工处理，重试等待 |
 | storageState 失效/过期 | token 过期、平台强制下线 | 属正常流程：ensure_login 自动降级为 VNC 登录并重新保存 storageState，无需修脚本 |

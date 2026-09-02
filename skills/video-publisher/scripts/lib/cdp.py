@@ -369,9 +369,12 @@ def select_by_text(page: Page, selector: str, option_text: str) -> bool:
 def upload_file(page: Page, selector: str, file_path: str) -> bool:
     """Upload a file through an <input type=file>.
 
-    If `selector` does not match, falls back to any visible file input on the
-    page. Raises RuntimeError if no file input exists (a human may need to
-    click the real upload button — use human_wait_selector around it instead).
+    If `selector` does not match, falls back to the first VISIBLE file input on
+    the page (hidden inputs — e.g. an already-used video input left in the DOM —
+    are skipped, otherwise the file may be silently attached to the wrong
+    control). Raises RuntimeError with the page's file-input inventory if no
+    usable input exists (a human may need to click the real upload button —
+    use human_wait_selector around it instead).
     """
     if selector:
         loc = page.locator(selector)
@@ -379,13 +382,19 @@ def upload_file(page: Page, selector: str, file_path: str) -> bool:
             loc.first.set_input_files(file_path)
             return True
     fallback = page.locator("input[type=file]")
-    for i in range(fallback.count()):
+    total = fallback.count()
+    for i in range(total):
         el = fallback.nth(i)
-        if el.is_visible() or el.count() > 0:
-            el.set_input_files(file_path)
-            return True
-    raise RuntimeError(f"页面没有找到可用的文件上传控件（selector={selector or 'auto'}），"
-                       f"可能需要人工通过 VNC 点击上传按钮，或修正脚本中的上传逻辑")
+        try:
+            if el.is_visible():
+                el.set_input_files(file_path)
+                return True
+        except Exception:
+            continue
+    raise RuntimeError(
+        f"页面没有找到可见的文件上传控件（共 {total} 个 file input，均不可见；"
+        f"selector={selector or 'auto'}）。封面/视频可能需先点击上传按钮再出现"
+        f"输入框，请补充对应选择器或人工通过 VNC 处理")
 
 
 def screenshot(page: Page, path: str) -> None:

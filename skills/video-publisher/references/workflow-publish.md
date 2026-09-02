@@ -75,6 +75,13 @@
 **agent 必须**：未收到 `human_collab_done`/`watch_done` 或成功 envelope 前
 不得宣布成功、不得盲目重试；等待期间不得做无关操作错过用户反馈。
 
+**防重复发布**：envelope 带 `confirm_required: true`（未配置 SUBMIT_OK_*
+成功特征）时，agent **必须先人工确认页面状态**（截图/VNC）：已成功则直接
+汇报；确实失败才可重试。框架 run() 有幂等保护——重跑时若页面已是成功状态
+（`check_already_submitted` 命中）会直接跳过、不重复上传/提交。发布成功但
+无封面时脚本输出 `cover_missing` 提示，需先解决封面（补 workflow 配置或
+用户提供封面）再处理，不要带着缺封面继续发多条。
+
 ## 步骤 6 — 成功汇报 / 失败自愈
 
 - 成功：汇报结果。

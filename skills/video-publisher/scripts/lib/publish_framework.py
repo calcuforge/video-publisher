@@ -104,6 +104,17 @@ class PlatformPublisher:
             self.page = self.open_publish_page()
             self.env("step", f"已打开发布页: {self.page.url}")
 
+            # 重跑幂等保护：页面已是"发布成功"状态（上次提交成功但脚本中断/
+            # 结果未确认）→ 直接成功退出，绝不重复上传/重复提交
+            if self.check_already_submitted():
+                self.env("result", "检测到发布已成功（页面命中成功特征），不再重复提交")
+                url = self.page.url
+                self.browser.close()
+                print(json.dumps({"status": "ok", "msg": "发布已完成（检测到上次提交成功，跳过）",
+                                  "data": {"url": url, "already_submitted": True}},
+                                 ensure_ascii=False, indent=2))
+                return
+
             self.wait_login()
             if self.UPLOAD_FIRST:
                 # 视频先行型（如 B站）：先上传视频（等上传入口出现），
@@ -119,12 +130,13 @@ class PlatformPublisher:
             if self.mode == "manual" and self.MANUAL_CHECKPOINT:
                 self.manual_checkpoint()
             self.submit()
-            self.wait_result()
+            confirmed = self.wait_result()
 
             url = self.page.url
             self.browser.close()
             print(json.dumps({"status": "ok", "msg": "发布执行完成",
-                              "data": {"url": url}}, ensure_ascii=False, indent=2))
+                              "data": {"url": url, "confirm_required": not confirmed}},
+                             ensure_ascii=False, indent=2))
         except Exception as exc:
             print(json.dumps({"status": "error", "msg": f"发布失败: {exc}",
                               "data": {"self_heal": "review_script_and_page"}},
@@ -152,6 +164,23 @@ class PlatformPublisher:
         """登录态管理：storageState 优先，缺失/过期则 VNC 人机协作登录并保存。
         子类可覆写追加额外等待（如登录后的短信/滑块二次校验）。"""
         ensure_login(self.page, self.platform_config, timeout=self.LOGIN_TIMEOUT)
+
+    def check_already_submitted(self) -> bool:
+        """重跑幂等检测：页面是否已是"发布成功"状态。
+
+        默认按 SUBMIT_OK_URL_CONTAINS / SUBMIT_OK_SELECTOR 判断（与
+        wait_result 同一特征）；子类可按平台实际成功形态覆写。返回 True 时
+        run() 直接成功退出，不重复上传/提交（防止失败重跑导致重复发布）。
+        """
+        if self.SUBMIT_OK_URL_CONTAINS and self.SUBMIT_OK_URL_CONTAINS in (self.page.url or ""):
+            return True
+        if self.SUBMIT_OK_SELECTOR:
+            try:
+                if self.page.locator(self.SUBMIT_OK_SELECTOR).count() > 0:
+                    return True
+            except Exception:
+                pass
+        return False
 
     def wait_form_ready(self):
         """等待发布表单加载（登录后跳转或表单异步渲染）。"""
@@ -209,10 +238,13 @@ class PlatformPublisher:
             self.env("step", f"字段 [{name}]（kind={kind}）需在子类 fill_field 中覆写处理")
 
     def upload_cover(self):
-        """上传封面。无封面文件则跳过。"""
+        """上传封面。封面缺失时给出醒目提示（无封面发布将影响点击率）。"""
         cover = self.field("cover")
         if not cover or not Path(cover).exists():
-            self.env("step", "无封面文件，跳过封面上传")
+            self.env("cover_missing",
+                     "封面缺失（materials.yaml 的 fields.cover 为空或文件不存在），本次发布将不带封面。"
+                     "agent 应确认封面生成配置（cover.comfyui_workflow）或让用户手动提供封面文件后重试",
+                     cover=cover)
             return
         self.env("step", f"上传封面: {cover}")
         upload_file(self.page, self.COVER_UPLOAD_SELECTOR, cover)
@@ -237,17 +269,27 @@ class PlatformPublisher:
     def before_submit(self):
         """提交前的平台特有步骤（勾选原创声明、二次确认弹窗等），子类按需覆写。"""
 
-    def wait_result(self):
-        """等待发布结果。未配置特征时提示 agent 人工确认。"""
+    def wait_result(self) -> bool:
+        """等待发布结果。返回是否已确认发布成功（供 run() 输出 confirm_required）。
+
+        未配置成功特征时返回 False 并醒目提示 —— 脚本无法确认提交是否成功，
+        agent 必须人工确认页面状态后再决定是否重试，防止"误判失败重跑 →
+        重复发布两条"。
+        """
         if self.SUBMIT_OK_URL_CONTAINS:
             human_wait_url(self.page, "已提交，等待发布结果（若出现验证码/风控校验，请通过 VNC 处理）",
                            self.SUBMIT_OK_URL_CONTAINS, timeout=self.SUBMIT_TIMEOUT)
-        elif self.SUBMIT_OK_SELECTOR:
+            return True
+        if self.SUBMIT_OK_SELECTOR:
             human_wait_selector(self.page, "已提交，等待发布结果（若出现验证码/风控校验，请通过 VNC 处理）",
                                 self.SUBMIT_OK_SELECTOR, timeout=self.SUBMIT_TIMEOUT)
-        else:
-            self.screenshot("post_submit.png")
-            self.env("result", "已执行提交，请通过 VNC 确认页面状态（未配置 SUBMIT_OK_* 特征）")
+            return True
+        self.screenshot("post_submit.png")
+        self.env("confirm_required",
+                 "已执行提交，但未配置 SUBMIT_OK_* 成功特征，脚本无法确认是否发布成功。"
+                 "agent 必须先通过截图/VNC 人工确认页面状态：若已成功，直接汇报；"
+                 "若确实失败再重试（重试有幂等保护，页面已成功时会自动跳过）")
+        return False
 
     # ============ 通用字段填写实现（子类可复用/覆写）============
     def _fill_text(self, name: str, value: str, label: str) -> None:
