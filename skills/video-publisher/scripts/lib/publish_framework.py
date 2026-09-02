@@ -63,6 +63,13 @@ class PlatformPublisher:
     # 上传入口出现的选择器（视频先行模式等待它；如 B站"点击上传"按钮或
     # 拖拽区）。留空则直接尝试 file input 上传。
     UPLOAD_ENTRY_SELECTOR = ""
+    # 推广信息（materials.yaml 的 material.promotion）投放位置 —— 首次发布
+    # 时 agent 按平台类型判定后固化：
+    #   description（默认）= 发布时并入视频简介（多数平台）；
+    #   comment    = 简介不放推广，发布成功后到评论区发一条推广评论
+    #                （平台无简介表单/简介不公开展示时；需实现 publish_comment）；
+    #   none       = 不投放（平台限制营销内容等）。
+    PROMOTION_PLACEMENT = "description"
     LOGIN_TIMEOUT = 600
     FORM_READY_TIMEOUT = 600
     UPLOAD_TIMEOUT = 1800
@@ -131,6 +138,7 @@ class PlatformPublisher:
                 self.manual_checkpoint()
             self.submit()
             confirmed = self.wait_result()
+            self.post_publish_promotion()  # 评论区投放等发布后动作（内部容错）
 
             url = self.page.url
             self.browser.close()
@@ -220,9 +228,32 @@ class PlatformPublisher:
             kind = fdef.get("kind", "text")
             if kind in ("video", "image"):
                 continue
-            if value in (None, "", [], False):
+            if name == "description":
+                # 推广信息（description 模式）在填写简介时并入，按平台 max_length
+                # 截断；简介本身为空但推广存在时也填写（纯推广简介）
+                value = self._description_with_promotion(value)
+                if not value:
+                    continue
+            elif value in (None, "", [], False):
                 continue
             self.fill_field(name, value, kind, fdef.get("label", name))
+
+    def promotion_text(self) -> str:
+        """物料中的推广信息（materials.yaml 的 material.promotion）。"""
+        return str(self.material.get("promotion") or "").strip()
+
+    def _description_with_promotion(self, description: str) -> str:
+        """PROMOTION_PLACEMENT=description 时把推广信息并入简介。"""
+        promo = self.promotion_text()
+        if self.PROMOTION_PLACEMENT != "description" or not promo:
+            return description
+        combined = f"{description}\n{promo}".strip()
+        fdef = self.structure.get("description", {})
+        maxlen = fdef.get("max_length")
+        if maxlen and len(combined) > int(maxlen):
+            combined = combined[:int(maxlen)]
+        self.env("promotion", f"推广信息已并入视频简介（{len(promo)} 字）")
+        return combined
 
     def fill_field(self, name: str, value, kind: str, label: str):
         """单个字段填写分发。子类覆写处理特殊字段（树形分区、富文本等）。"""
@@ -265,6 +296,40 @@ class PlatformPublisher:
         elif not click_by_text(self.page, "发布"):
             raise RuntimeError("未找到发布按钮（SUBMIT_SELECTOR 未配置且无'发布'文本按钮），"
                                "请根据探测结果补充 SUBMIT_SELECTOR")
+
+    def post_publish_promotion(self) -> None:
+        """发布成功后的推广投放（PROMOTION_PLACEMENT=comment 时发评论区）。
+
+        视频已发布成功，此步骤失败不影响发布结果——内部容错：异常仅 env
+        警告并提示 agent 人工补发，不让重跑（会被幂等保护跳过）错过推广。
+        """
+        promo = self.promotion_text()
+        if not promo:
+            return
+        if self.PROMOTION_PLACEMENT == "comment":
+            try:
+                if self.publish_comment(promo):
+                    self.env("promotion", "推广评论已发布到评论区")
+                else:
+                    self.env("promotion_failed",
+                             "评论区推广未完成（publish_comment 返回 False）。agent 需人工补发推广评论")
+            except Exception as exc:
+                self.env("promotion_failed",
+                         f"评论区推广失败（不影响视频发布）: {exc}。agent 需人工补发推广评论")
+        elif self.PROMOTION_PLACEMENT not in ("description", "none"):
+            self.env("step", f"未知的 PROMOTION_PLACEMENT: {self.PROMOTION_PLACEMENT}（应为 description/comment/none）")
+
+    def publish_comment(self, text: str) -> bool:
+        """发布成功后到视频评论区发一条推广评论（PROMOTION_PLACEMENT=comment 时）。
+
+        平台差异大（评论入口/登录校验/防刷限制不同），首次发布时由 agent 按
+        平台实际实现并固化（打开发布成功后的视频页 → 评论区输入框 → 填写 →
+        发送，必要时 human_wait 等待人工处理验证）。返回是否成功。
+        """
+        self.env("promotion_not_implemented",
+                 "PROMOTION_PLACEMENT=comment 但平台子类未实现 publish_comment()。"
+                 "首次发布时 agent 需按该平台评论区结构实现并固化（参考 publish-framework.md）")
+        return False
 
     def before_submit(self):
         """提交前的平台特有步骤（勾选原创声明、二次确认弹窗等），子类按需覆写。"""

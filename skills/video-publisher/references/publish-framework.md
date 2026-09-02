@@ -24,8 +24,21 @@
 ```
 open_publish_page → wait_login → wait_form_ready → upload_video →
 fill_form(逐字段 → fill_field) → upload_cover → [manual_checkpoint]
-→ submit(before_submit) → wait_result
+→ submit(before_submit) → wait_result → post_publish_promotion
 ```
+
+**推广信息投放（materials.yaml 的 `material.promotion`）**——首次发布时
+agent 按平台类型判定后固化 `PROMOTION_PLACEMENT`：
+
+| 取值 | 行为 | 适用平台类型 |
+|------|------|-------------|
+| `description`（默认） | 填写简介时把推广并入简介（按平台 `max_length` 截断，简介为空则纯推广简介） | 多数平台（简介公开展示） |
+| `comment` | 简介不放推广；发布成功后调 `publish_comment(text)` 发评论区推广 | 无简介表单/简介不公开展示的平台（首次发布时 agent 实现 `publish_comment` 并固化：打开视频页→评论区→输入→发送，必要时 human_wait 处理验证；失败仅警告，不影响已发布视频） |
+| `none` | 不投放 | 平台限制营销内容 |
+
+推广来源：explainer-video-maker 项目配置的 `promotion` 字段（联动自动读取）
+或 generate_material.py 的 `--promotion` 参数；见
+[explainer-video-maker-integration.md](explainer-video-maker-integration.md)。
 
 **视频先行型（如 B站：先上传视频、转码完成后标题表单才出现）**——配置
 两个类属性即可，无需覆写任何方法（框架自动调整时序）：

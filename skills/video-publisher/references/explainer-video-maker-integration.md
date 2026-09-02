@@ -18,6 +18,16 @@ explainer-video-maker 制作，按本指引归类和生成物料。
 | `summary` | 视频摘要 | 简介、封面提示词 |
 | `chapter_summaries` | 各章节摘要（dict） | 可选：更细的简介/标签参考 |
 
+**推广信息（`promotion`）**：explainer **项目级** `project_config.yaml` 的
+`promotion` 长文本字段（该项目所有视频共用，如账号关注引导/合作联系方式）。
+generate_material 联动时自动读取（`video_config.yaml` 的上级目录
+`project_config.yaml`），存入 `materials.yaml` 的 `material.promotion`。
+发布时由平台发布脚本按 `PROMOTION_PLACEMENT` 投放：
+- 有视频简介表单的平台（多数）→ 推广并入简介（默认 description 模式）；
+- 无简介表单/简介不公开展示的平台 → 发布成功后发评论区推广
+  （comment 模式，首次发布时实现并固化 `publish_comment`）；
+- 位置判定与固化见 [publish-framework.md](publish-framework.md)。
+
 ## 项目归类（项目检测步骤）
 
 1. 读取 `topic`，推断内容分类（科技/游戏/知识/生活/美食...）；

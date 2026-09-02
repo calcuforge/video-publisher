@@ -9,6 +9,10 @@ material:
     height: 1080
     size_bytes: 321456789
   created_at: "2026-08-13 20:15:00"
+  # 推广信息（长文本）：联动 explainer project_config.yaml 的 promotion 或
+  # --promotion 参数自动带入；发布时由平台脚本按 PROMOTION_PLACEMENT 决定
+  # 并入简介（description 模式，默认）或发布后发评论区（comment 模式）
+  promotion: "本频道每周更新科技前沿解读，欢迎点赞关注！合作请联系 tech@example.com"
   # fields 的键与 platform_config.yaml 的 material_structure.fields 一一对应
   fields:
     title: "GPU架构详解 | 科技前沿"

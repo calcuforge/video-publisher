@@ -115,6 +115,12 @@ python "${SKILL_DIR}/scripts/tool/generate_material.py" \
   agent 把吸引力手法（悬念/数字/承诺/情绪/对比）套进 `title_format`
   （引用 `{topic}`）或直接编辑 `materials.yaml` 的 title 字段；manual 模式
   审核点展示优化标题与备选。规范见 [title-guide.md](title-guide.md)。
+- **推广信息（promotion）**：联动读取的 `material.promotion` 不为空时，
+  **首次发布执行中 agent 判定该平台投放位置并固化到发布脚本**（类属性
+  `PROMOTION_PLACEMENT`）：有视频简介表单 → `description`（并入简介，
+  默认）；无简介表单/简介不公开展示 → `comment`（实现 `publish_comment`
+  发布后发评论区）；平台限制营销 → `none`。详见
+  [publish-framework.md](publish-framework.md)。
 - 产物在 `{project}/materials/{date}_{video_name}/`。
 - **手动模式确认点 #2**：manual 模式下，agent 展示物料数据（标题/封面/标签/
   分区）等待用户审核，修改 `materials.yaml` 后继续。

@@ -22,6 +22,10 @@ explainer-video-maker 联动（--video-config）:
   吸引力手法（悬念/数字/承诺/情绪/对比）——裸 topic 不是最终标题
 - 简介：未配置 description_format 时用 summary（按平台 max_length 截断）
 - 封面：cover.prompt 可引用 {topic} {summary} 生成更贴合的封面
+- 推广信息：读取 video_config 上级项目 project_config.yaml 的 promotion
+  长文本字段 → 存 materials.yaml 的 material.promotion，发布时由平台脚本
+  按 PROMOTION_PLACEMENT 并入简介或发评论区（见 publish-framework.md）；
+  也可用 --promotion 参数直接提供（优先级更高）
 - 项目归类：由 agent 依据 topic 与 explainer 项目名推断分类
   （见 references/explainer-video-maker-integration.md）
 
@@ -180,6 +184,10 @@ def build_material(
             "video_file": str(video_file),
             "video_metadata": metadata,
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            # 推广信息（长文本）：发布时由平台发布脚本按 PROMOTION_PLACEMENT
+            # 决定填入简介或评论区（见 publish-framework.md）；此处不并入
+            # description，保持简介纯净，便于 manual 审核
+            "promotion": ctx.get("promotion", ""),
             "fields": {},
         }
     }
@@ -217,7 +225,11 @@ def main() -> None:
     parser.add_argument("--no-cover", action="store_true", help="跳过封面生成")
     parser.add_argument("--video-config", default="",
                         help="explainer-video-maker 的 video_config.yaml 路径（可选）："
-                             "其 topic/summary 用于生成标题/简介/封面提示词（{topic} {summary} 占位符）")
+                             "其 topic/summary 用于生成标题/简介/封面提示词（{topic} {summary} 占位符）；"
+                             "并读取其上级项目 project_config.yaml 的 promotion 推广信息")
+    parser.add_argument("--promotion", default="",
+                        help="推广信息（长文本，可选）：发布时附加到简介/评论区的内容；"
+                             "优先级高于 --video-config 联动读取的项目推广字段")
     args = parser.parse_args()
 
     require_abs(args.project_config, args.platform_config, args.video_file)
@@ -242,7 +254,8 @@ def main() -> None:
         "project": project_config.get("project", {}).get("name", ""),
     }
     # explainer-video-maker 联动：视频文件同目录的 video_config.yaml 提供
-    # topic/summary，用于归类依据与标题/简介/封面提示词生成
+    # topic/summary，用于归类依据与标题/简介/封面提示词生成；并读取其上级
+    # 项目 project_config.yaml 的 promotion 推广信息
     if args.video_config:
         require_abs(args.video_config)
         vc_path = Path(args.video_config)
@@ -256,9 +269,22 @@ def main() -> None:
                                   "data": {"topic": ctx["topic"][:60],
                                            "has_summary": bool(ctx.get("summary"))}},
                                  ensure_ascii=False), flush=True)
+            # 推广信息：explainer 项目级 project_config.yaml（video_config 的上级目录）
+            proj_cfg = vc_path.parent.parent / "project_config.yaml"
+            if not ctx.get("promotion") and proj_cfg.exists():
+                proj = load_yaml(proj_cfg)
+                if isinstance(proj, dict) and proj.get("promotion"):
+                    ctx["promotion"] = proj["promotion"]
+                    print(json.dumps({"status": "info",
+                                      "msg": f"已读取项目推广信息: {proj_cfg.name}",
+                                      "data": {"promotion": str(proj["promotion"])[:60]}},
+                                     ensure_ascii=False), flush=True)
         else:
             print(json.dumps({"status": "warning", "msg": f"--video-config 文件不存在，忽略: {vc_path}",
                               "data": {}}, ensure_ascii=False), flush=True)
+    # --promotion 显式参数优先（非 explainer 联动也可用）
+    if args.promotion:
+        ctx["promotion"] = args.promotion
     # 封面提示词与物料的 {title} 必须真实替换（按标题模板解析），
     # 否则文生图会把字面量 "{title}" 画进封面
     ctx["title"] = resolve_title(project_config, platform_config, ctx)
