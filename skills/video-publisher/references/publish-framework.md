@@ -16,6 +16,9 @@
   （选择器）并覆写平台差异相关的 hook。
 - **可复用**：同一平台所有项目/所有视频共用一份子类，业务数据只来自
   yaml（materials.yaml 与配置），禁止硬编码。
+- **账号无关**：多账号发布由框架外层处理——publish_video.py 按账号合并
+  platform_config（login/cdp 段按账号覆盖）后传入，子类读到的仍是
+  platform_config 形状，无需感知账号（见 SKILL.md 账号解析链）。
 
 ## 发布生命周期与 hooks
 

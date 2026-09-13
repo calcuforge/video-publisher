@@ -66,6 +66,25 @@ python "${SKILL_DIR}/scripts/verify/verify_platform_config.py" --platform-config
   通用字段（title/description/tags/partition/cover/video），`publish_page_url`
   等为空属预期（verify 通过但带 WARN）——这些都在步骤 6 首次发布过程中补充。
 
+### 3b. 账号检测（多账号发布，可选维度）
+
+- **确定目标账号**（四级解析链）：用户指令显式指定（按 name/display_name/
+  aliases 匹配 `accounts/` 下账号，如"发到小号B"）→ 项目
+  `publish_defaults.default_account` → 平台 `default_account` → `default`
+  兜底；匹配不到且用户表达不明确时，列出可用账号询问用户。
+- **账号不存在** → 创建：
+  ```bash
+  python "${SKILL_DIR}/scripts/tool/init_account.py" \
+      --platform-dir {platform_dir} --account <标识> \
+      --display-name <展示名> --aliases <逗号分隔别名>
+  ```
+  （CDP 端口自动递增 9223+，每账号独立浏览器实例与登录态；首次登录走 VNC
+  人机协作，storageState 保存到该账号目录）
+- **浏览器实例**：多账号时按账号端口/profile 启动对应实例（launch_browser.py
+  `--cdp-port/--profile-dir`，见 human-collab.md）；发布/监控均连该实例
+  （`publish_video.py --account` / `watch_login.py --account` 自动合并账号
+  配置）。无 `accounts/` 目录 = 单账号形态，跳过本小节。
+
 ## 步骤 4 — 项目检测与目录、配置初始化
 
 **先识别视频来源**：若视频文件同目录存在 `video_config.yaml`

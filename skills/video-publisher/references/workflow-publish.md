@@ -28,6 +28,10 @@
 
 ## 步骤 3 — 项目检测
 
+- **账号检测**（多账号，四级解析链）：用户指令显式指定（按
+  name/display_name/aliases 匹配）→ 项目 `publish_defaults.default_account`
+  → 平台 `default_account` → `default` 兜底；账号不存在时 `init_account.py`
+  创建（见 workflow-first-publish.md 3b）。无 `accounts/` 目录 = 单账号形态。
 - **先识别视频来源**：若视频文件同目录存在 `video_config.yaml`
   （explainer-video-maker 产物），按
   [explainer-video-maker-integration.md](explainer-video-maker-integration.md)
@@ -48,7 +52,10 @@
 
 ## 步骤 5 — 执行发布脚本
 
-同首次流程步骤 6b（publish_video.py + 人机协作 + 手动模式提交前确认点）。
+同首次流程步骤 6b（publish_video.py + 人机协作 + 手动模式提交前确认点）；
+多账号时加 `--account <账号标识>`（按步骤 3 的解析链确定，发布成功回填
+materials.yaml 的 `target_account`）。同一视频发多个账号 = 对每个账号循环
+执行（串行推荐防风控；账号浏览器实例独立，并行可选）。
 
 **非首次发布的登录态/验证码场景（重点）**：非首次发布 ≠ 免登录——storageState
 可能过期（token 失效、平台强制下线、cookie 被清），发布过程也可能遇到

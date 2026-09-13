@@ -107,6 +107,9 @@ def main() -> None:
     parser.add_argument("--platform-config", required=True, help="平台配置绝对路径（login_indicator，兜底用）")
     parser.add_argument("--project-config", default="", help="项目配置绝对路径（推送目标 hermes_send_targets，可选）")
     parser.add_argument("--cdp-url", default="", help="CDP 调试地址（默认按 lib/env 约定解析）")
+    parser.add_argument("--account", default="",
+                        help="目标账号唯一标识（多账号发布）：用该账号的合并配置监控"
+                             "（storage_state/cdp 按账号隔离）；也可直接传账号合并视图的 platform-config 路径")
     parser.add_argument("--check-script", default="",
                         help="agent 编写的完成判断模块（{platform}_watch_check.py，含 check(page) 函数；"
                              "不同平台页面特征不同，由 agent 按实际页面实现；模板见 template_watch_check.py）")
@@ -118,6 +121,15 @@ def main() -> None:
 
     require_abs(args.platform_config)
     platform_config = load_yaml(args.platform_config)
+
+    # 多账号：合并账号配置（storage_state/cdp 按账号隔离），与发布脚本监控同一实例
+    if args.account:
+        from lib.account import resolve_account
+        platform_dir = platform_config.get("platform", {}).get("data_dir", "")
+        if platform_dir:
+            platform_config, account_name = resolve_account(platform_dir, platform_config, account=args.account)
+            if account_name:
+                env_out("watch_account", f"监控目标账号: {account_name}")
 
     check_fn = None
     if args.check_script:

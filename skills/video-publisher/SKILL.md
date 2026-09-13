@@ -88,17 +88,30 @@ python "${SKILL_DIR}/scripts/tool/check_prereqs.py" [--workspace <工作区>]
 │   ├── platform_config.yaml         # 平台级配置：物料数据结构 + 默认模板 + CDP/登录信息
 │   ├── publish_scripts/             # 该平台自动化发布脚本（首次流程编写，可复用）
 │   │   └── {platform}_publish.py
-│   └── projects/
-│       └── {project}/               # 项目目录，如 tech
-│           ├── project_config.yaml  # 项目级配置：模式/发布默认值/封面生成配置
-│           ├── materials/           # 每次发布的物料目录 {date}_{video_name}/
-│           │   └── .../materials.yaml  # 物料数据（标题/简介/标签/分区/封面/视频）
-│           └── tmp/                 # 临时文件（截图、探测 dump、自愈日志）
+│   ├── projects/
+│   │   └── {project}/               # 项目目录，如 tech
+│   │       ├── project_config.yaml  # 项目级配置：模式/发布默认值/封面生成配置
+│   │       ├── materials/           # 每次发布的物料目录 {date}_{video_name}/
+│   │       │   └── .../materials.yaml  # 物料数据（标题/简介/标签/分区/封面/视频）
+│   │       └── tmp/                 # 临时文件（截图、探测 dump、自愈日志、账号合并视图）
+│   └── accounts/                    # ★ 同平台多账号（可选；无此目录 = 单账号形态）
+│       └── {account}/               # 账号目录（目录名 = 账号唯一标识）
+│           ├── account_config.yaml  # 账号配置：display_name/aliases + 独立登录态/浏览器实例
+│           ├── storage_state.json   # 该账号登录态（VNC 登录后自动保存）
+│           └── browser_profile/     # 该账号浏览器 profile（独立 CDP 端口）
 ```
 
 - **平台** = 视频网站（每个平台一个目录 + 平台级 yaml 配置，可任意扩展）。
 - **项目** = 要发布视频的关键属性，如视频分类（每个项目一个目录 + 项目级
   yaml 配置，可任意扩展）。
+- **账号** = 同平台的发布身份（可选维度）：唯一标识 = 账号目录名
+  （`accounts/{name}/`）。agent 按四级解析链确定目标账号：
+  ① 用户指令显式指定（按 name/display_name/aliases 匹配，如"发到小号B"）
+  ② 项目默认 `project_config.yaml` → `publish_defaults.default_account`
+  ③ 平台默认 `platform_config.yaml` → `default_account`
+  ④ `default` 账号兜底。账号不存在时 `init_account.py` 创建（CDP 端口自动
+  递增 9223+，每账号独立浏览器实例与登录态）；`publish_video.py --account`
+  发布，成功后回填 `materials.yaml` 的 `target_account`。
 - workspace 解析顺序：`--workspace` 参数 > 环境变量 `VIDEO_PUBLISHER_WORKSPACE`
   > 当前工作目录。
 - 配置文件的完整填写示例见 `templates/example_configs/`（含 B站平台配置、

@@ -54,6 +54,18 @@ python "${SKILL_DIR}/scripts/tool/launch_browser.py" \
 `cd hermes-hitl-environment && cp .env.example .env && docker compose up -d --build`，
 随后 `PLAYWRIGHT_CDP_URL=http://127.0.0.1:9222` 直接可用。
 
+**多账号 = 多浏览器实例**：每个账号独立 profile 与 CDP 端口（init_account.py
+自动从 9223 递增分配）。发布某账号前按其 account_config 启动对应实例：
+
+```bash
+python "${SKILL_DIR}/scripts/tool/launch_browser.py" \
+    --cdp-port 9223 --profile-dir <...>/accounts/account_b/browser_profile
+```
+
+VNC 桌面上会出现多个浏览器窗口，人机协作时按目标账号的窗口操作；
+发布/监控脚本用 `--account` 自动连对应实例（见 SKILL.md 账号解析链）。
+同平台多账号发布建议串行错峰（防风控关联）。
+
 Windows 本地调试也可手动启动（推荐固定 `--user-data-dir`，profile cookie 作
 为兜底会话；**登录态持久化以 playwright storageState 为主**，见下节）：
 

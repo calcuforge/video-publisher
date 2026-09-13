@@ -14,8 +14,14 @@
     python publish_video.py --platform-config /abs/.../platform_config.yaml \
                             --project-config /abs/.../project_config.yaml \
                             --material /abs/.../materials.yaml \
+                            [--account account_b] \
                             [--script /abs/.../{platform}_publish.py] \
                             [--cdp-url http://127.0.0.1:9222]
+
+多账号：--account 指定目标账号（支持用户口语别名，如"小号B"；未指定时按
+解析链：项目 default_account > 平台 default_account > default）。账号配置
+（独立 storageState/浏览器实例）合并为有效平台配置后传给发布脚本——框架与
+平台脚本账号无关。发布成功后回填 materials.yaml 的 target_account。
 
 输出: 透传平台发布脚本的 JSON envelope 输出。
 """
@@ -32,9 +38,10 @@ from pathlib import Path
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SKILL_ROOT))
 
+from lib.account import match_account, normalize_account, resolve_account
 from lib.env import get_env
 from lib.net import ensure_utf8_stdio, require_abs
-from lib.yamlutil import load_yaml
+from lib.yamlutil import load_yaml, save_yaml
 
 ensure_utf8_stdio()
 
@@ -69,7 +76,10 @@ def main() -> None:
     parser.add_argument("--project-config", required=True, help="项目配置绝对路径")
     parser.add_argument("--material", required=True, help="物料数据 materials.yaml 绝对路径")
     parser.add_argument("--script", default="", help="平台发布脚本绝对路径（默认按配置解析）")
-    parser.add_argument("--cdp-url", default="", help="CDP 调试地址（默认取平台配置）")
+    parser.add_argument("--cdp-url", default="", help="CDP 调试地址（默认取平台/账号配置）")
+    parser.add_argument("--account", default="",
+                        help="目标账号唯一标识（多账号发布；未指定时按解析链：项目 default_account "
+                             "> 平台 default_account > default；支持用户口语别名匹配")
     args = parser.parse_args()
 
     require_abs(args.platform_config, args.project_config, args.material)
@@ -78,11 +88,37 @@ def main() -> None:
                          ensure_ascii=False, indent=2))
         sys.exit(1)
 
+    from lib.account import match_account, resolve_account
+
     platform_config = load_yaml(args.platform_config)
+    project_config = load_yaml(args.project_config)
+    platform_dir = platform_config.get("platform", {}).get("data_dir", "")
+
+    # 账号解析：--account 支持用户口语（别名/展示名）匹配；四级解析链后
+    # 合并账号配置为有效视图（login/cdp 段按账号覆盖，其余平台级共享）
+    account_input = args.account
+    if account_input and not (Path(platform_dir) / "accounts" / normalize_account(account_input)).exists():
+        matched = match_account(platform_dir, account_input)
+        if matched:
+            account_input = matched
+    try:
+        platform_config, account_name = resolve_account(
+            platform_dir, platform_config, account=account_input, project_config=project_config)
+    except RuntimeError as exc:
+        print(json.dumps({"status": "error", "msg": str(exc), "data": {"self_heal": "account_not_found"}},
+                         ensure_ascii=False, indent=2))
+        sys.exit(1)
+
     cdp = platform_config.get("platform", {}).get("cdp", {})
-    # 解析优先级：--cdp-url 参数 > 环境变量 PLAYWRIGHT_CDP_URL（hermes 约定）> 平台配置 > 默认
+    # 解析优先级：--cdp-url 参数 > 环境变量 PLAYWRIGHT_CDP_URL（hermes 约定）> 账号/平台配置 > 默认
     cdp_url = args.cdp_url or get_env("PLAYWRIGHT_CDP_URL") or \
         f"http://{cdp.get('host', '127.0.0.1')}:{cdp.get('port', 9222)}"
+
+    if account_name:
+        print(json.dumps({"status": "info",
+                          "msg": f"目标账号: {account_name}（CDP: {cdp_url}）",
+                          "data": {"account": account_name, "cdp_url": cdp_url}},
+                         ensure_ascii=False), flush=True)
 
     try:
         script = resolve_script(Path(args.platform_config), args.script)
@@ -91,9 +127,17 @@ def main() -> None:
                          ensure_ascii=False, indent=2))
         sys.exit(1)
 
+    # 账号合并视图写入平台 tmp/（框架与 watch 脚本读取同一份有效配置）
+    platform_config_path = Path(args.platform_config)
+    if account_name:
+        tmp_dir = platform_config_path.parent / "tmp" / "accounts"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        platform_config_path = tmp_dir / f"{account_name}_effective.yaml"
+        save_yaml(platform_config, platform_config_path)
+
     cmd = [
         sys.executable, str(script),
-        "--platform-config", args.platform_config,
+        "--platform-config", str(platform_config_path),
         "--project-config", args.project_config,
         "--material", args.material,
         "--cdp-url", cdp_url,
@@ -104,6 +148,17 @@ def main() -> None:
     env["PYTHONPATH"] = str(SKILL_ROOT) + os.pathsep + env.get("PYTHONPATH", "")
     # 透传子进程输出（含 @ENV@ 人机协作行），退出码一致
     result = subprocess.run(cmd, env=env, timeout=3600)
+
+    # 发布成功后回填 target_account（发布记录可追溯）
+    if result.returncode == 0 and account_name:
+        try:
+            material = load_yaml(args.material)
+            if isinstance(material, dict):
+                material.setdefault("material", {})["target_account"] = account_name
+                save_yaml(material, args.material)
+        except Exception as exc:
+            print(f"WARNING: target_account 回填失败（不影响发布）: {exc}", file=sys.stderr)
+
     sys.exit(result.returncode)
 
 
