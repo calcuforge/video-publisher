@@ -12,10 +12,13 @@ example_configs/
 └── video_publiser_data/             # 数据根（= {workspace}/video_publiser_data）
     └── bilibili/                     # 平台目录
         ├── platform_config.yaml      # 平台级配置（B站，含物料数据结构与默认模板）
+        ├── accounts/                 # ★ 同平台多账号（可选；目录名 = 账号唯一标识）
+        │   └── account_b/
+        │       └── account_config.yaml  # 账号配置（独立登录态/浏览器实例 + 口语别名）
         └── projects/tech/            # 项目目录
-            ├── project_config.yaml   # 项目级配置（tech 科技类）
+            ├── project_config.yaml   # 项目级配置（tech 科技类，含默认账号）
             └── materials/20260813_gpu_architecture/
-                └── materials.yaml    # 单次发布的物料数据
+                └── materials.yaml    # 单次发布的物料数据（含 promotion/target_account）
 ```
 
 人机协作通知推送**不需要独立配置文件**：通过 hermes agent gateway 的
@@ -24,10 +27,19 @@ example_configs/
 （**支持多个，如 `[weixin, telegram:12345]`；空 = 推送到所有已发现
 channel**；hermes v0.20+ 强制 `--to`），见 references/human-collab.md。
 
+**多账号发布**：`accounts/{name}/` 为账号目录（唯一标识 = 目录名），
+账号配置含独立登录态（storage_state.json）与浏览器实例（独立 CDP 端口）；
+示例配置了 `account_b`（别名"小号B"）。发布用 `publish_video.py --account
+account_b`（未指定时按解析链：项目 default_account → 平台 default_account
+→ default），发布成功回填 `materials.yaml` 的 `target_account`。见
+SKILL.md 账号解析链与 references/human-collab.md。
+
 文件中的路径均为示例占位（`{workspace}` = 实际工作区绝对路径）。实际运行时：
 
 - `platform_config.yaml` 由 `init_platform.py` 生成骨架，agent 在首次发布
   执行过程中按实际表单完善（本示例即为完善后的形态）；
+- `account_config.yaml` 由 `init_account.py` 生成，agent 填写
+  display_name/aliases；
 - `project_config.yaml` 由 `init_project.py` 生成骨架，agent 按请求填写；
 - `materials.yaml` 由 `generate_material.py` 自动生成，agent/用户审核修改。
 

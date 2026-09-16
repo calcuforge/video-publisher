@@ -1,0 +1,18 @@
+# account_config.yaml 示例：同平台多账号的账号级配置。
+# 由 init_account.py 生成并回填（name/account_dir/storage_state_path/cdp.port 自动递增），
+# agent 填写 display_name/aliases（用户口语匹配用，如"发到小号B"）。
+# 账号唯一标识 = 目录名（accounts/account_b/）。
+account:
+  name: account_b
+  display_name: "小号B"
+  aliases: [小号B, b号, backup]
+  account_dir: "{workspace}/video_publiser_data/bilibili/accounts/account_b"
+  # 每账号独立登录态（VNC 登录后自动保存到本账号目录）
+  login:
+    storage_state_path: "{workspace}/video_publiser_data/bilibili/accounts/account_b/storage_state.json"
+  # 每账号独立浏览器实例（隔离登录态、支持并行发布；init_account 自动递增端口）
+  cdp:
+    host: 127.0.0.1
+    port: 9223
+    profile_dir: "{workspace}/video_publiser_data/bilibili/accounts/account_b/browser_profile"
+  notes: "备用号，仅发布科技分类内容"

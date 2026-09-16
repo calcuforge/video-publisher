@@ -55,14 +55,16 @@ video-publisher/
     │   │   ├── launch_browser.py   # Launch shared headed Chromium (hermes-aligned)
     │   │   ├── init_workspace.py   # Ensure workspace/video_publiser_data
     │   │   ├── init_platform.py    # Platform dir + platform_config.yaml (alias-aware)
+    │   │   ├── init_account.py     # Account dir + account_config.yaml (multi-account)
     │   │   ├── init_project.py     # Project dir + project_config.yaml
     │   │   ├── probe_page.py       # Publish-page DOM probe via CDP (human-collab)
     │   │   ├── generate_material.py# ffprobe metadata + comfyui-scheduler cover + materials.yaml
-    │   │   ├── publish_video.py    # Publish entry (runs the platform publish script)
+    │   │   ├── publish_video.py    # Publish entry (--account merges account config; backfills target_account)
     │   │   ├── notify.py           # Push human-collab notifications via hermes agent channel
     │   │   └── watch_login.py      # Watch page until user handles login/captcha (wakes agent)
     │   ├── publish_scripts/
-    │   │   └── template_publish.py # Agent-filled template for per-platform scripts
+    │   │   ├── template_publish.py # Agent-filled template for per-platform scripts
+    │   │   └── template_watch_check.py # Agent-filled per-platform watch check module
     │   └── verify/                 # Config validation scripts
     ├── templates/                  # platform/project/default config templates
     │   └── example_configs/        # Filled-in config examples (video_publiser_data/{platform}/{project})

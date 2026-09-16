@@ -6,6 +6,7 @@ platform:
   name: bilibili
   aliases: [B站, 哔哩哔哩, bilibili, b站]
   data_dir: "{workspace}/video_publiser_data/bilibili"
+  default_account: "" # 平台默认发布账号（多账号时四级解析链一级）；空 = default 兜底
   publish_page_url: "https://member.bilibili.com/platform/upload/video/frame"
   # 登录检测：URL 包含 passport.bilibili.com 时为未登录；已登录后发布页
   # URL 包含 /platform/upload，且页面出现"投稿管理"入口（登录指示二选一命中即可）

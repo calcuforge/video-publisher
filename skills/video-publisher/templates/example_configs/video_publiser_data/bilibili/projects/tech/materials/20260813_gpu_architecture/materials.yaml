@@ -22,4 +22,5 @@ material:
     cover: "{workspace}/video_publiser_data/bilibili/projects/tech/materials/20260813_gpu_architecture/cover.png"
     video: "D:/videos/tech/GPU架构详解.mp4"
     original_declaration: true
+  target_account: account_b # 发布成功后由 publish_video.py 回填（发布记录可追溯）
   mode: auto # auto | manual；manual 模式发布前 agent 必须等待用户审核

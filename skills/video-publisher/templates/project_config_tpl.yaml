@@ -25,6 +25,9 @@ publish_defaults:
   # 空（默认）= 推送到所有已发现的 channel（hermes send --list 枚举）。
   # 示例: [weixin, telegram:12345, feishu]
   hermes_send_targets: []
+  # 项目默认发布账号（同平台多账号，可选）：--account 未指定时使用。
+  # 唯一标识见 {platform}/accounts/{name}/；空 = default 账号兜底
+  default_account: ""
 # 物料生成配置
 material:
   video_source_dir: "" # agent fills: 待发布视频所在目录（相对项目目录或绝对路径）
