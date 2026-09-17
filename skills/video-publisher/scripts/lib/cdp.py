@@ -126,14 +126,20 @@ def new_page(browser, url: str = "", platform_config: Optional[dict] = None) -> 
 
     Login-state policy (storageState 优先，共享浏览器为兜底):
     - 若 platform_config 提供且该平台的 storageState 文件存在 → 新建 context
-      并载入登录态；
-    - 否则复用浏览器已有 context（browser.contexts[0]）——与
+      并载入登录态（多账号共用浏览器时靠独立 storageState 隔离 cookie）；
+    - 无 storageState 但合并视图带账号标识（platform.account，多账号共用
+      模式）→ 同样新建隔离 context（首登不落共享默认 context，**防止多个
+      新账号在同一 context 登录导致串号**）；
+    - 其余情况复用浏览器已有 context（browser.contexts[0]）——与
       hermes-hitl-environment 的共享 Chromium 约定一致：人类与 agent 操作
       同一个浏览器窗口，用户通过 VNC 登录的那个可见会话。
     """
     state = load_login_state(storage_state_path(platform_config)) if platform_config else None
+    is_account_mode = bool(platform_config and platform_config.get("platform", {}).get("account"))
     if state is not None:
         context = browser.new_context(storage_state=state)
+    elif is_account_mode:
+        context = browser.new_context()
     else:
         context = browser.contexts[0] if browser.contexts else browser.new_context()
     page = context.new_page()

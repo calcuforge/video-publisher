@@ -1,18 +1,21 @@
 # account_config.yaml template — 账号级配置（同平台多账号）。
 # init_account.py 将其复制到 accounts/{name}/account_config.yaml，并回填
-# account.name / account_dir / login.storage_state_path / cdp.port（自动递增）
-# / cdp.profile_dir。agent 随后填写 display_name / aliases（指令匹配用）。
+# account.name / account_dir / login.storage_state_path / cdp.port（平台实例
+# 端口，默认共用）。agent 随后填写 display_name / aliases（指令匹配用）。
 account:
   name: "" # filled by init_account.py — 唯一标识（= 账号目录名，小写英文数字下划线）
   display_name: "" # agent fills: 展示名（如"小号B"），仅备注不作唯一标识
   aliases: [] # agent fills: 指令匹配别名（如 [小号B, b号, backup]）
   account_dir: "" # filled by init_account.py — 账号目录绝对路径
-  # 登录态：每账号独立 storageState（缺失/过期时 VNC 登录后保存到此）
+  # 登录态：每账号独立 storageState（缺失/过期时 VNC 登录后保存到此）——
+  # 共用浏览器模式下账号隔离靠它（框架为每个账号创建隔离 context）
   login:
     storage_state_path: "" # filled by init_account.py
-  # 浏览器实例：每账号独立 profile 与 CDP 端口（隔离登录态、支持并行发布）
+  # 浏览器实例：默认共用（port = 平台端口，profile_dir 留空，所有账号连同一
+  # 实例）。如需完全隔离（独立指纹防风控关联），手改本段：独立端口 +
+  # profile_dir（{account_dir}/browser_profile），并用 launch_browser.py 启动
   cdp:
     host: 127.0.0.1
-    port: 0 # filled by init_account.py — 自动递增（首个账号 9223）
-    profile_dir: "" # filled by init_account.py — {account_dir}/browser_profile
+    port: 0 # filled by init_account.py — 平台实例端口（共用模式，默认 9222）
+    profile_dir: "" # 留空 = 共用平台实例；独立实例时手填 {account_dir}/browser_profile
   notes: "" # agent fills: 备注（如该账号用途/实名信息）

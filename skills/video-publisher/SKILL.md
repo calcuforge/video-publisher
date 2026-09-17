@@ -109,9 +109,11 @@ python "${SKILL_DIR}/scripts/tool/check_prereqs.py" [--workspace <工作区>]
   ① 用户指令显式指定（按 name/display_name/aliases 匹配，如"发到小号B"）
   ② 项目默认 `project_config.yaml` → `publish_defaults.default_account`
   ③ 平台默认 `platform_config.yaml` → `default_account`
-  ④ `default` 账号兜底。账号不存在时 `init_account.py` 创建（CDP 端口自动
-  递增 9223+，每账号独立浏览器实例与登录态）；`publish_video.py --account`
-  发布，成功后回填 `materials.yaml` 的 `target_account`。
+  ④ `default` 账号兜底。账号不存在时 `init_account.py` 创建；
+  **默认共用浏览器实例**（同一 CDP 端点，框架按账号独立 storageState 创建
+  隔离 context，cookie 互不串；可选配独立端口/profile 完全隔离）；
+  `publish_video.py --account` 发布，成功后回填 `materials.yaml` 的
+  `target_account`。
 - workspace 解析顺序：`--workspace` 参数 > 环境变量 `VIDEO_PUBLISHER_WORKSPACE`
   > 当前工作目录。
 - 配置文件的完整填写示例见 `templates/example_configs/`（含 B站平台配置、

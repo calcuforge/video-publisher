@@ -132,17 +132,24 @@ def resolve_account(platform_dir: Path | str, platform_config: dict,
 
 
 def merge_account(platform_config: dict, account_config: dict) -> dict:
-    """合并平台配置与账号配置为有效视图（login/cdp 段被账号覆盖）。"""
+    """合并平台配置与账号配置为有效视图（login/cdp 段被账号覆盖）。
+
+    账号配置中的空值不覆盖平台配置——共用模式（默认）下账号 cdp 段的
+    profile_dir 留空 = 沿用平台实例，不应清除平台级设置。
+    """
     effective = copy.deepcopy(platform_config)
     acct = account_config.get("account", {}) if isinstance(account_config, dict) else {}
     platform = effective.setdefault("platform", {})
 
+    def non_empty(d: dict) -> dict:
+        return {k: v for k, v in d.items() if v not in (None, "", [], {})}
+
     # login 段覆盖（storage_state_path 按账号隔离）
-    acct_login = acct.get("login") or {}
+    acct_login = non_empty(acct.get("login") or {})
     if acct_login:
         platform["login"] = {**(platform.get("login") or {}), **acct_login}
-    # cdp 段覆盖（port/profile_dir 按账号隔离）
-    acct_cdp = acct.get("cdp") or {}
+    # cdp 段覆盖（独立实例时为账号专属 port/profile_dir；共用模式仅端口与平台一致）
+    acct_cdp = non_empty(acct.get("cdp") or {})
     if acct_cdp:
         platform["cdp"] = {**(platform.get("cdp") or {}), **acct_cdp}
 

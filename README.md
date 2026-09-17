@@ -12,9 +12,11 @@ human-in-the-loop collaboration via VNC + headed Chromium (CDP).
   video to youtube".
 - **Multi-platform**: each platform is a directory with a `platform_config.yaml`
   (material data structure + auto-mode defaults + CDP/login info).
-- **Multi-account**: optional per-platform `accounts/` (isolated storageState +
-  browser instance per account); publish with `--account` via a 4-level
-  resolution chain (explicit → project default → platform default → default).
+- **Multi-account**: optional per-platform `accounts/` — accounts share one
+  browser instance by default (isolated storageState + per-account context,
+  no cookie bleed); opt-in full isolation (separate CDP port/profile) for
+  fingerprint separation. Publish with `--account` via a 4-level resolution
+  chain (explicit → project default → platform default → default).
 - **Multi-project**: project = the video's key attribute (e.g. category); each
   project is a directory with a `project_config.yaml` (mode, publish defaults,
   cover generation config).

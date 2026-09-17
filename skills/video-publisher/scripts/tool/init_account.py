@@ -2,11 +2,15 @@
 """
 账号初始化：创建 {platform_dir}/accounts/{name}/ 账号目录及 account_config.yaml
 （从 templates/account_config_tpl.yaml 复制，回填 name/account_dir/
-storage_state_path/cdp.port/profile_dir）。
+storage_state_path）。
 
 - 账号唯一标识 = 目录名（小写英文数字下划线），重名报错并列出已有账号
-- CDP 端口自动递增：扫描已有账号端口，取 max+1（首个账号 9223，避开平台
-  默认的 9222）；实现每账号独立浏览器实例（登录态隔离、可并行发布）
+- **默认共用模式**：所有账号连同一个浏览器实例（平台 CDP 端口），靠独立
+  storageState 隔离 cookie（框架自动为账号创建隔离 context）——回填的
+  cdp.port 即平台端口，profile_dir 留空
+- 如需完全隔离（独立指纹防风控关联），手改 account_config.yaml 的
+  cdp.port（不同端口）与 cdp.profile_dir，并用 launch_browser.py 按该
+  端口/profile 启动独立实例
 - 已存在的账号视为初始化完成（不覆盖现有配置）
 
 用法:
@@ -34,19 +38,7 @@ from lib.yamlutil import load_yaml, save_yaml
 ensure_utf8_stdio()
 
 TEMPLATE_PATH = SKILL_ROOT / "templates" / "account_config_tpl.yaml"
-BASE_PORT = 9223  # 首个账号端口（9222 留给平台默认浏览器实例）
-
-
-def next_cdp_port(platform_dir: Path) -> int:
-    """扫描已有账号端口取 max+1；无账号时从 BASE_PORT 开始。"""
-    ports = [BASE_PORT - 1]
-    for acct in list_accounts(platform_dir):
-        cfg_path = Path(acct["config_path"])
-        if cfg_path.exists():
-            cfg = load_yaml(cfg_path) or {}
-            port = (cfg.get("account", {}) or {}).get("cdp", {}) or {}
-            ports.append(int(port.get("port", BASE_PORT - 1) or BASE_PORT - 1))
-    return max(ports) + 1
+DEFAULT_CDP_PORT = 9222  # 平台默认浏览器实例端口（共用模式）
 
 
 def main() -> None:
@@ -87,7 +79,10 @@ def main() -> None:
                               "data": {"available": existing}},
                              ensure_ascii=False, indent=2))
             sys.exit(1)
-        port = next_cdp_port(platform_dir)
+        # 共用模式：账号连平台同一浏览器实例（CDP 端口取平台配置，默认 9222）
+        platform_cfg = load_yaml(platform_dir / "platform_config.yaml") or {}
+        port = (platform_cfg.get("platform", {}).get("cdp", {}) or {}).get("port", DEFAULT_CDP_PORT)
+
         config = load_yaml(TEMPLATE_PATH)
         account = config.setdefault("account", {})
         account["name"] = name
@@ -97,8 +92,8 @@ def main() -> None:
         if args.aliases:
             account["aliases"] = [a.strip() for a in args.aliases.split(",") if a.strip()]
         account.setdefault("login", {})["storage_state_path"] = str(account_dir / "storage_state.json")
-        account.setdefault("cdp", {})["port"] = port
-        account["cdp"]["profile_dir"] = str(account_dir / "browser_profile")
+        account.setdefault("cdp", {})["port"] = port  # 共用平台实例端口
+        account["cdp"]["profile_dir"] = ""  # 留空 = 共用平台浏览器实例（独立实例时手改端口与 profile）
         account_dir.mkdir(parents=True, exist_ok=True)
         save_yaml(config, config_path)
         created = True

@@ -14,7 +14,7 @@ example_configs/
         ├── platform_config.yaml      # 平台级配置（B站，含物料数据结构与默认模板）
         ├── accounts/                 # ★ 同平台多账号（可选；目录名 = 账号唯一标识）
         │   └── account_b/
-        │       └── account_config.yaml  # 账号配置（独立登录态/浏览器实例 + 口语别名）
+        │       └── account_config.yaml  # 账号配置（独立登录态 + 口语别名）
         └── projects/tech/            # 项目目录
             ├── project_config.yaml   # 项目级配置（tech 科技类，含默认账号）
             └── materials/20260813_gpu_architecture/
@@ -28,11 +28,13 @@ example_configs/
 channel**；hermes v0.20+ 强制 `--to`），见 references/human-collab.md。
 
 **多账号发布**：`accounts/{name}/` 为账号目录（唯一标识 = 目录名），
-账号配置含独立登录态（storage_state.json）与浏览器实例（独立 CDP 端口）；
-示例配置了 `account_b`（别名"小号B"）。发布用 `publish_video.py --account
-account_b`（未指定时按解析链：项目 default_account → 平台 default_account
-→ default），发布成功回填 `materials.yaml` 的 `target_account`。见
-SKILL.md 账号解析链与 references/human-collab.md。
+账号配置含独立登录态（storage_state.json）——**默认共用浏览器实例**
+（同一 CDP 端口，框架按账号创建隔离 context，cookie 互不串）；示例配置了
+`account_b`（别名"小号B"）。发布用 `publish_video.py --account account_b`
+（未指定时按解析链：项目 default_account → 平台 default_account →
+default），发布成功回填 `materials.yaml` 的 `target_account`。如需完全
+隔离（独立指纹），给账号配独立 cdp.port/profile_dir。见 SKILL.md 账号
+解析链与 references/human-collab.md。
 
 文件中的路径均为示例占位（`{workspace}` = 实际工作区绝对路径）。实际运行时：
 

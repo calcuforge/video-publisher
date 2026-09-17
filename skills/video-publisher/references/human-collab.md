@@ -54,17 +54,20 @@ python "${SKILL_DIR}/scripts/tool/launch_browser.py" \
 `cd hermes-hitl-environment && cp .env.example .env && docker compose up -d --build`，
 随后 `PLAYWRIGHT_CDP_URL=http://127.0.0.1:9222` 直接可用。
 
-**多账号 = 多浏览器实例**：每个账号独立 profile 与 CDP 端口（init_account.py
-自动从 9223 递增分配）。发布某账号前按其 account_config 启动对应实例：
+**多账号 = 共用浏览器实例（默认）**：所有账号连同一个 CDP 端点（平台实例，
+默认 9222）——框架为每个账号创建**隔离 context**（载入该账号独立
+storageState，cookie 互不串），无需为每账号启动浏览器。
 
-```bash
-python "${SKILL_DIR}/scripts/tool/launch_browser.py" \
-    --cdp-port 9223 --profile-dir <...>/accounts/account_b/browser_profile
-```
-
-VNC 桌面上会出现多个浏览器窗口，人机协作时按目标账号的窗口操作；
-发布/监控脚本用 `--account` 自动连对应实例（见 SKILL.md 账号解析链）。
-同平台多账号发布建议串行错峰（防风控关联）。
+- 只需启动一个共享实例（launch_browser.py 或 hermes 环境），发布/监控用
+  `--account` 自动载入账号隔离 context（见 SKILL.md 账号解析链）；
+- **VNC 人机协作注意**：每个账号的页面在**独立浏览器窗口**中打开，用户
+  必须在"脚本打开的那个窗口"完成登录/验证（不要操作默认窗口），登录态
+  才会保存到该账号；
+- 首次登录（无 storageState）同样使用隔离 context，多个新账号不会串号；
+- **可选完全隔离**：给 account_config.yaml 配独立 `cdp.port` +
+  `profile_dir`，用 launch_browser.py 按该端口/profile 启动独立实例
+  （独立指纹，降低风控关联；代价是每账号一个浏览器窗口与进程）；
+- 无论共用或独立，同平台多账号发布建议**串行错峰**（防风控关联）。
 
 Windows 本地调试也可手动启动（推荐固定 `--user-data-dir`，profile cookie 作
 为兜底会话；**登录态持久化以 playwright storageState 为主**，见下节）：
