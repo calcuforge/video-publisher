@@ -31,7 +31,7 @@
 | `PLAYWRIGHT_CDP_URL` | `http://127.0.0.1:9222` | Playwright 通过 CDP 驱动共享 Chromium |
 | `CHROME_REMOTE_DEBUGGING_PORT` | `9222` | Chromium 调试端口 |
 | `VNC_PORT` | `5900` | VNC 桌面端口 |
-| `NOVNC_PORT` | `6080` | noVNC（浏览器访问 `http://<host>:6080/vnc.html`） |
+| `NOVNC_PORT` | `6080` | noVNC（**PC 端浏览器**访问 `http://<host>:6080/vnc.html`；手机端无法正常操作有头浏览器） |
 | `VNC_VIEWER_URL` | — | VNC 接入地址（如 `vnc://host:port` 或 `http://host:port/vnc.html`）；设置后提示/推送消息中的 VNC 地址取此值，未设置回退 `{host}:{VNC_PORT}` |
 | `CHROME_BIN` / `CHROME_PROFILE_DIR` / `CHROME_DOWNLOADS_DIR` | — | 浏览器可执行文件 / profile / 下载目录 |
 | `SCREEN_WIDTH` / `SCREEN_HEIGHT` | `1920` / `1080` | Chromium 窗口尺寸 |
@@ -121,19 +121,21 @@ Windows 本地调试也可手动启动（推荐固定 `--user-data-dir`，profil
 ```
 
 **1. 脚本输出提示**。发布脚本遇到无法自动化的步骤（登录态过期、验证码、
-风控等）时，输出一行 `@ENV@` JSON（消息自带 VNC/noVNC 接入地址）：
+风控等）时，输出一行 `@ENV@` JSON（消息自带 VNC/noVNC 接入地址与
+**"请用 PC 端打开"强调**）：
 
 ```json
-@ENV@ {"env_status": "human_collab", "msg": "⚠ 需要用户通过 VNC 配合：页面未登录...。接入方式：浏览器 CDP: http://127.0.0.1:9222 | VNC: 127.0.0.1:5900 | noVNC: http://127.0.0.1:6080/vnc.html",
+@ENV@ {"env_status": "human_collab", "msg": "⚠ 需要用户通过 VNC 配合：页面未登录...。接入方式：浏览器 CDP: http://127.0.0.1:9222 | VNC: 127.0.0.1:5900 | noVNC: http://127.0.0.1:6080/vnc.html（请用 PC 端（电脑）浏览器打开，手机端无法正常操作）",
        "data": {"action": "vnc", "condition": "URL 包含 member.bilibili.com/..."}}
 ```
 
 **2. agent 推送 channel 消息**。agent 看到 `@ENV@ human_collab` 提示后，
 通过 **hermes agent 的 channel** 推送通知（消息**必须包含 VNC 接入地址**；
-@ENV@ 提示自带，agent 手写消息时 CLI 会自动附加）：
+@ENV@ 提示自带，agent 手写消息时 CLI 会自动附加，两者均带"**请用 PC 端
+（电脑）打开**"强调）：
 
 ```bash
-python "${SKILL_DIR}/scripts/tool/notify.py" --message "⚠ 需要用户通过 VNC 配合：请完成登录，脚本正在等待。接入方式：VNC: 127.0.0.1:5900 | noVNC: http://127.0.0.1:6080/vnc.html"
+python "${SKILL_DIR}/scripts/tool/notify.py" --message "⚠ 需要用户通过 VNC 配合：请完成登录，脚本正在等待。接入方式：VNC: 127.0.0.1:5900 | noVNC: http://127.0.0.1:6080/vnc.html（请用 PC 端打开，手机端无法正常操作）"
 python "${SKILL_DIR}/scripts/tool/notify.py" --message "..." --to telegram
 ```
 

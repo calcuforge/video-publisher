@@ -205,7 +205,10 @@ references/workflow-publish.md。
 ## 人机协作要点
 
 - **环境端口约定对齐 hermes-hitl-environment**：agent 经 CDP(9222) 驱动共享
-  有头 Chromium，用户经 VNC(5900) / noVNC(6080/vnc.html) 观察与介入。
+  有头 Chromium，用户经 VNC(5900) / noVNC(6080/vnc.html) 观察与介入
+  （**提示用户时强调用 PC 端（电脑）打开，手机端无法正常操作**）。
+  人机协作提示中的接入方式（含该强调）由 `lib/env.vnc_hint()` 统一生成，
+  @ENV@ 提示与 channel 推送均自动携带。
   **VNC 接入地址优先取环境变量 `VNC_VIEWER_URL`**（如 `vnc://host:port`），
   未设置回退 `{host}:{VNC_PORT}`。
   解析优先级：命令行参数 > 环境变量（`PLAYWRIGHT_CDP_URL` /

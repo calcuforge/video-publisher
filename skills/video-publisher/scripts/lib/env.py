@@ -67,6 +67,7 @@ def vnc_hint(host: str = "127.0.0.1", cdp_url: str = "") -> str:
     VNC 地址优先取环境变量 VNC_VIEWER_URL（如 vnc://host:port 或
     http://host:port/vnc.html），未设置时回退为 {host}:{VNC_PORT}；
     cdp_url 显式传入时以其为准，否则按 resolve_cdp_url 约定解析。
+    强调**PC 端打开**：noVNC 等人机协作入口在手机端无法正常操作浏览器。
     """
     vnc_port = get_env("VNC_PORT", "5900")
     novnc_port = get_env("NOVNC_PORT", "6080")
@@ -77,4 +78,5 @@ def vnc_hint(host: str = "127.0.0.1", cdp_url: str = "") -> str:
         f"浏览器 CDP: {resolved} | "
         f"VNC: {vnc_addr} | "
         f"noVNC: http://{host}:{novnc_port}/vnc.html"
+        f"（请用 PC 端（电脑）浏览器打开，手机端无法正常操作）"
     )
